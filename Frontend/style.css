@@ -1,0 +1,23 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: sans-serif;
+    background: #111;
+    color: #eee;
+}
+
+#scene-container {
+    /* TODO: full viewport container for the Three.js canvas */
+}
+
+#controls {
+    /* TODO: layout for input form and correct-attitude button */
+}
+
+#graphs {
+    /* TODO: layout for torque vs time graphs */
+}
