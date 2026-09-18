@@ -152,6 +152,10 @@ main {
     margin-bottom: 0.6rem;
 }
 
+#simulation-status.status-error {
+    color: var(--danger-text);
+}
+
 .field-group-label {
     font-size: 0.68rem;
     color: var(--text-muted);

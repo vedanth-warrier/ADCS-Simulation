@@ -12,7 +12,7 @@
         <p class="subtitle">
             Simulate a tumbling satellite under an arbitrary-axis spin, then trigger a
             three-axis reaction wheel correction. Configure the satellite and wheel
-            properties, watch the attitude respond in 3D, and track wheel torque and
+            properties, watch the attitude respond in 3D, and track wheel speed and
             saturation over time.
         </p>
     </header>
@@ -237,6 +237,7 @@
 
             <div class="controls-footer">
                 <button id="correct-attitude-btn">Correct Attitude</button>
+                <p class="section-hint" id="simulation-status" hidden></p>
                 <div id="saturation-flags">
                     <span class="saturation-flag" id="wheel-x-saturation" hidden>X wheel saturated</span>
                     <span class="saturation-flag" id="wheel-y-saturation" hidden>Y wheel saturated</span>
@@ -260,15 +261,15 @@
 
             <section class="graphs-row">
                 <div class="panel graph-panel">
-                    <h2 class="panel-title">X Wheel Torque (N&middot;m)</h2>
+                    <h2 class="panel-title">X Wheel Speed (RPM)</h2>
                     <canvas id="graph-wheel-x"></canvas>
                 </div>
                 <div class="panel graph-panel">
-                    <h2 class="panel-title">Y Wheel Torque (N&middot;m)</h2>
+                    <h2 class="panel-title">Y Wheel Speed (RPM)</h2>
                     <canvas id="graph-wheel-y"></canvas>
                 </div>
                 <div class="panel graph-panel">
-                    <h2 class="panel-title">Z Wheel Torque (N&middot;m)</h2>
+                    <h2 class="panel-title">Z Wheel Speed (RPM)</h2>
                     <canvas id="graph-wheel-z"></canvas>
                 </div>
             </section>

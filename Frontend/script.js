@@ -5,7 +5,7 @@ const BACKEND_URL = "http://localhost:5000";
 
 let scene, camera, renderer, controls, satelliteMesh;
 let gizmoScene, gizmoCamera, gizmoRenderer;
-let torqueCharts = {};
+let wheelSpeedCharts = {};
 
 const AXIS_COLORS = { x: "#ff6b6b", y: "#6bff8f", z: "#6ba8ff" };
 
@@ -247,7 +247,7 @@ function updateGizmo() {
     gizmoRenderer.render(gizmoScene, gizmoCamera);
 }
 
-function createTorqueChart(canvasId, color) {
+function createWheelSpeedChart(canvasId, color) {
     return new Chart(document.getElementById(canvasId), {
         type: "line",
         data: {
@@ -276,8 +276,8 @@ function createTorqueChart(canvasId, color) {
                 },
                 y: {
                     // No min/max set, so Chart.js autoscales to whatever
-                    // data updateTorqueCharts() is given.
-                    title: { display: true, text: "Torque (N·m)", color: "#8b95a5", font: { size: 10 } },
+                    // data updateWheelSpeedCharts() is given.
+                    title: { display: true, text: "Speed (RPM)", color: "#8b95a5", font: { size: 10 } },
                     ticks: { color: "#8b95a5", font: { size: 9 } },
                     grid: { color: "rgba(139, 149, 165, 0.12)" },
                 },
@@ -286,42 +286,106 @@ function createTorqueChart(canvasId, color) {
     });
 }
 
-function initTorqueCharts() {
-    torqueCharts = {
-        x: createTorqueChart("graph-wheel-x", AXIS_COLORS.x),
-        y: createTorqueChart("graph-wheel-y", AXIS_COLORS.y),
-        z: createTorqueChart("graph-wheel-z", AXIS_COLORS.z),
+function initWheelSpeedCharts() {
+    wheelSpeedCharts = {
+        x: createWheelSpeedChart("graph-wheel-x", AXIS_COLORS.x),
+        y: createWheelSpeedChart("graph-wheel-y", AXIS_COLORS.y),
+        z: createWheelSpeedChart("graph-wheel-z", AXIS_COLORS.z),
     };
 }
 
 // Expected shape once the backend /simulate endpoint is wired up:
-// { time: [t0, t1, ...], torque: { x: [...], y: [...], z: [...] } },
+// { time: [t0, t1, ...], rpm: { x: [...], y: [...], z: [...] } },
 // all arrays the same length. Axes autoscale to whatever range is passed.
-function updateTorqueCharts(simulationData) {
-    const { time, torque } = simulationData;
+function updateWheelSpeedCharts(simulationData) {
+    const { time, rpm } = simulationData;
     ["x", "y", "z"].forEach((axis) => {
-        const chart = torqueCharts[axis];
+        const chart = wheelSpeedCharts[axis];
         chart.data.labels = time;
-        chart.data.datasets[0].data = torque[axis];
+        chart.data.datasets[0].data = rpm[axis];
         chart.update();
     });
 }
 
+function fieldValue(id) {
+    return parseFloat(document.getElementById(id).value) || 0;
+}
+
+function readWheelInputs(axis) {
+    return {
+        mass: fieldValue(`wheel-${axis}-mass`),
+        radius: fieldValue(`wheel-${axis}-radius`),
+        max_rpm: fieldValue(`wheel-${axis}-max-rpm`),
+    };
+}
+
 function readUserInputs() {
-    // TODO: read initial angular velocity, mass, dimensions, wheel params,
-    // disturbance torque magnitude/direction from the form
+    const dimensions = getSatelliteDimensions();
+    return {
+        initial_angular_velocity: {
+            x: fieldValue("omega-x"),
+            y: fieldValue("omega-y"),
+            z: fieldValue("omega-z"),
+        },
+        satellite: {
+            mass: fieldValue("sat-mass"),
+            dimensions,
+        },
+        reaction_wheels: {
+            x: readWheelInputs("x"),
+            y: readWheelInputs("y"),
+            z: readWheelInputs("z"),
+        },
+        disturbance_torque: {
+            magnitude: fieldValue("disturbance-magnitude"),
+            direction: {
+                x: fieldValue("disturbance-dir-x"),
+                y: fieldValue("disturbance-dir-y"),
+                z: fieldValue("disturbance-dir-z"),
+            },
+        },
+        timeframe: document.querySelector('input[name="timeframe"]:checked').value,
+    };
 }
 
 async function runSimulation(params) {
-    // TODO: POST params to `${BACKEND_URL}/simulate`, return the response JSON
+    const response = await fetch(`${BACKEND_URL}/simulate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params),
+    });
+    if (!response.ok) {
+        throw new Error(`Backend responded with ${response.status} ${response.statusText}`);
+    }
+    return response.json();
 }
 
 function animateSatellite(stateTimeSeries) {
     // TODO: step the satellite mesh through returned orientation quaternions
 }
 
-document.getElementById("correct-attitude-btn")?.addEventListener("click", () => {
-    // TODO: wire up correct-attitude flow
+const correctAttitudeBtn = document.getElementById("correct-attitude-btn");
+const simulationStatus = document.getElementById("simulation-status");
+
+correctAttitudeBtn?.addEventListener("click", async () => {
+    const params = readUserInputs();
+
+    correctAttitudeBtn.disabled = true;
+    simulationStatus.hidden = true;
+    simulationStatus.classList.remove("status-error");
+
+    try {
+        const result = await runSimulation(params);
+        // TODO: once the backend returns real time-series data, feed it to
+        // updateWheelSpeedCharts(result) and animateSatellite(result)
+        console.log("simulation result", result);
+    } catch (error) {
+        simulationStatus.textContent = `Could not reach the backend: ${error.message}`;
+        simulationStatus.classList.add("status-error");
+        simulationStatus.hidden = false;
+    } finally {
+        correctAttitudeBtn.disabled = false;
+    }
 });
 
 function clampToRange(input, value) {
@@ -359,4 +423,4 @@ document.querySelectorAll('input[name="timeframe"]').forEach((radio) => {
 });
 
 initScene();
-initTorqueCharts();
+initWheelSpeedCharts();
