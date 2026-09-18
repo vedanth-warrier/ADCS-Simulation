@@ -248,7 +248,14 @@
         <div class="workspace">
             <section class="panel scene-panel">
                 <h2 class="panel-title">Satellite Attitude (3D)</h2>
-                <div id="scene-container"></div>
+                <div id="scene-container">
+                    <div class="scene-hints">
+                        <p class="scene-hint">Drag to rotate</p>
+                        <p class="scene-hint">Shift drag to roll</p>
+                        <p class="scene-hint">Scroll to zoom</p>
+                    </div>
+                    <div id="axis-gizmo" aria-hidden="true"></div>
+                </div>
             </section>
 
             <section class="graphs-row">
@@ -269,6 +276,8 @@
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TrackballControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
