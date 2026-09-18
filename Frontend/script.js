@@ -30,4 +30,34 @@ document.getElementById("correct-attitude-btn")?.addEventListener("click", () =>
     // TODO: wire up correct-attitude flow
 });
 
+function clampToRange(input, value) {
+    if (input.min !== "" && value < parseFloat(input.min)) value = parseFloat(input.min);
+    if (input.max !== "" && value > parseFloat(input.max)) value = parseFloat(input.max);
+    return value;
+}
+
+document.querySelectorAll(".stepper-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        const input = document.getElementById(btn.dataset.target);
+        const step = parseFloat(input.step) || 1;
+        const direction = parseFloat(btn.dataset.step);
+        const next = Math.round(((parseFloat(input.value) || 0) + direction * step) * 1e6) / 1e6;
+        input.value = clampToRange(input, next);
+    });
+});
+
+document.querySelectorAll('input[type="number"]').forEach((input) => {
+    input.addEventListener("change", () => {
+        if (input.value === "") return;
+        input.value = clampToRange(input, parseFloat(input.value));
+    });
+});
+
+const timeframeWarning = document.getElementById("timeframe-warning");
+document.querySelectorAll('input[name="timeframe"]').forEach((radio) => {
+    radio.addEventListener("change", (event) => {
+        timeframeWarning.hidden = event.target.value === "seconds";
+    });
+});
+
 initScene();

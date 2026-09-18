@@ -3,22 +3,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADCS Simulator</title>
+    <title>ADCS SIMULATOR</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="scene-container"></div>
+    <header>
+        <h1><span class="title-icon" aria-hidden="true">&#128752;</span> ADCS SIMULATOR</h1>
+        <p class="subtitle">
+            Simulate a tumbling satellite under an arbitrary-axis spin, then trigger a
+            three-axis reaction wheel correction. Configure the satellite and wheel
+            properties, watch the attitude respond in 3D, and track wheel torque and
+            saturation over time.
+        </p>
+    </header>
 
-    <div id="controls">
-        <!-- TODO: input fields for initial angular velocity, mass, dimensions,
-             wheel mass/radius/max RPM, disturbance torque magnitude/direction -->
-        <button id="correct-attitude-btn">Correct Attitude</button>
-        <!-- TODO: seconds / hours / days timeframe switch -->
-    </div>
+    <main>
+        <aside id="controls">
+            <div class="controls-scroll">
+                <section class="panel-section">
+                    <h2>Initial Angular Velocity (rad/s)</h2>
+                    <p class="section-hint">Applies in seconds mode only. Hours/days mode starts from a stationary attitude.</p>
+                    <div class="triplet">
+                        <div class="field">
+                            <label for="omega-x">X</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="omega-x" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="omega-x" step="0.1" value="0">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="omega-x" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="omega-y">Y</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="omega-y" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="omega-y" step="0.1" value="0">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="omega-y" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="omega-z">Z</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="omega-z" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="omega-z" step="0.1" value="0">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="omega-z" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-    <div id="graphs">
-        <!-- TODO: torque vs time graphs per reaction wheel -->
-    </div>
+                <section class="panel-section">
+                    <h2>Satellite Properties</h2>
+                    <p class="section-hint">Modelled as a rectangular prism, not a sphere, so moment of inertia differs per axis.</p>
+                    <div class="field">
+                        <label for="sat-mass">Mass (kg)</label>
+                        <div class="stepper">
+                            <button type="button" class="stepper-btn" data-step="-1" data-target="sat-mass" aria-label="Decrease">&minus;</button>
+                            <input type="number" id="sat-mass" min="0" step="1" value="4">
+                            <button type="button" class="stepper-btn" data-step="1" data-target="sat-mass" aria-label="Increase">+</button>
+                        </div>
+                    </div>
+                    <p class="field-group-label">Dimensions along X, Y, Z (m)</p>
+                    <div class="triplet">
+                        <div class="field">
+                            <label for="sat-dim-x">X</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="sat-dim-x" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="sat-dim-x" min="0" step="0.5" value="0.5">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="sat-dim-x" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="sat-dim-y">Y</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="sat-dim-y" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="sat-dim-y" min="0" step="0.5" value="0.5">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="sat-dim-y" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="sat-dim-z">Z</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="sat-dim-z" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="sat-dim-z" min="0" step="0.5" value="0.5">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="sat-dim-z" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel-section">
+                    <h2>Reaction Wheels</h2>
+                    <p class="section-hint">One wheel per orthogonal axis for full three-axis control.</p>
+
+                    <p class="field-group-label">Wheel X, mass (kg) / radius (m) / max speed (RPM)</p>
+                    <div class="triplet">
+                        <div class="field">
+                            <label for="wheel-x-mass">Mass</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-x-mass" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-x-mass" min="0" step="1" value="0.10">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-x-mass" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="wheel-x-radius">Radius</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-x-radius" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-x-radius" min="0" step="0.5" value="0.030">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-x-radius" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="wheel-x-max-rpm">Max RPM</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-x-max-rpm" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-x-max-rpm" min="0" step="100" value="6000">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-x-max-rpm" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="field-group-label">Wheel Y, mass (kg) / radius (m) / max speed (RPM)</p>
+                    <div class="triplet">
+                        <div class="field">
+                            <label for="wheel-y-mass">Mass</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-y-mass" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-y-mass" min="0" step="1" value="0.10">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-y-mass" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="wheel-y-radius">Radius</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-y-radius" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-y-radius" min="0" step="0.5" value="0.030">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-y-radius" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="wheel-y-max-rpm">Max RPM</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-y-max-rpm" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-y-max-rpm" min="0" step="100" value="6000">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-y-max-rpm" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="field-group-label">Wheel Z, mass (kg) / radius (m) / max speed (RPM)</p>
+                    <div class="triplet">
+                        <div class="field">
+                            <label for="wheel-z-mass">Mass</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-z-mass" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-z-mass" min="0" step="1" value="0.10">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-z-mass" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="wheel-z-radius">Radius</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-z-radius" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-z-radius" min="0" step="0.5" value="0.030">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-z-radius" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="wheel-z-max-rpm">Max RPM</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-z-max-rpm" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-z-max-rpm" min="0" step="100" value="6000">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-z-max-rpm" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel-section">
+                    <h2>Disturbance Torque</h2>
+                    <p class="section-hint">Simplified stand-in for combined solar pressure, drag and gravity-gradient effects. Active in hours/days mode only.</p>
+                    <div class="field">
+                        <label for="disturbance-magnitude">Magnitude (N&middot;m)</label>
+                        <div class="stepper">
+                            <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-magnitude" aria-label="Decrease">&minus;</button>
+                            <input type="number" id="disturbance-magnitude" min="0" step="1" value="0">
+                            <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-magnitude" aria-label="Increase">+</button>
+                        </div>
+                    </div>
+                    <p class="field-group-label">Direction vector along X, Y, Z</p>
+                    <div class="triplet">
+                        <div class="field">
+                            <label for="disturbance-dir-x">X</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-dir-x" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="disturbance-dir-x" step="1" value="1">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-dir-x" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="disturbance-dir-y">Y</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-dir-y" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="disturbance-dir-y" step="1" value="0">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-dir-y" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="disturbance-dir-z">Z</label>
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-dir-z" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="disturbance-dir-z" step="1" value="0">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-dir-z" aria-label="Increase">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel-section">
+                    <h2>Timeframe</h2>
+                    <div class="radio-row">
+                        <label class="radio-label"><input type="radio" name="timeframe" value="seconds" checked> Seconds</label>
+                        <label class="radio-label"><input type="radio" name="timeframe" value="hours"> Hours</label>
+                        <label class="radio-label"><input type="radio" name="timeframe" value="days"> Days</label>
+                    </div>
+                    <p class="section-hint" id="timeframe-warning" hidden>
+                        In hours/days mode the satellite starts stationary and the disturbance
+                        torque is active. Initial tumble is not modelled at this timescale,
+                        it is corrected too fast to notice.
+                    </p>
+                </section>
+            </div>
+
+            <div class="controls-footer">
+                <button id="correct-attitude-btn">Correct Attitude</button>
+                <div id="saturation-flags">
+                    <span class="saturation-flag" id="wheel-x-saturation" hidden>X wheel saturated</span>
+                    <span class="saturation-flag" id="wheel-y-saturation" hidden>Y wheel saturated</span>
+                    <span class="saturation-flag" id="wheel-z-saturation" hidden>Z wheel saturated</span>
+                </div>
+            </div>
+        </aside>
+
+        <div class="workspace">
+            <section class="panel scene-panel">
+                <h2 class="panel-title">Satellite Attitude (3D)</h2>
+                <div id="scene-container"></div>
+            </section>
+
+            <section class="graphs-row">
+                <div class="panel graph-panel">
+                    <h2 class="panel-title">X Wheel Torque (N&middot;m)</h2>
+                    <canvas id="graph-wheel-x"></canvas>
+                </div>
+                <div class="panel graph-panel">
+                    <h2 class="panel-title">Y Wheel Torque (N&middot;m)</h2>
+                    <canvas id="graph-wheel-y"></canvas>
+                </div>
+                <div class="panel graph-panel">
+                    <h2 class="panel-title">Z Wheel Torque (N&middot;m)</h2>
+                    <canvas id="graph-wheel-z"></canvas>
+                </div>
+            </section>
+        </div>
+    </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="script.js"></script>
