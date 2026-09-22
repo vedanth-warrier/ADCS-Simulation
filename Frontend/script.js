@@ -1,11 +1,26 @@
 // ADCS Simulator frontend: Three.js scene, user inputs, backend calls.
 
-// TODO: config value for backend URL, set once backend is deployed
-const BACKEND_URL = "http://localhost:5000";
+// TODO: update once the backend is deployed. Port 5001, not Flask's
+// default 5000: on macOS 5000 is usually held by the AirPlay Receiver
+// (ControlCenter), which "localhost" resolves to over IPv6 ahead of
+// Flask's IPv4-only default bind, so requests silently never reach Flask.
+const BACKEND_URL = "http://localhost:5001";
 
 let scene, camera, renderer, controls, satelliteMesh;
 let gizmoScene, gizmoCamera, gizmoRenderer;
 let wheelSpeedCharts = {};
+const clock = new THREE.Clock();
+
+// "seconds" is the only timeframe with an initial tumble (see CLAUDE.md:
+// hours/days start from a stationary attitude), kept in sync by the
+// timeframe radio listener further down instead of re-querying the DOM
+// every animation frame.
+let currentTimeframe = "seconds";
+
+// Paused while a Correct Attitude request is in flight, so the live
+// preview doesn't keep spinning underneath a correction that's supposedly
+// already happening.
+let liveTumbleEnabled = true;
 
 const AXIS_COLORS = { x: "#ff6b6b", y: "#6bff8f", z: "#6ba8ff" };
 
@@ -63,8 +78,27 @@ function initScene() {
     animate();
 }
 
+function updateLiveTumble(dt) {
+    if (!liveTumbleEnabled || currentTimeframe !== "seconds") return;
+
+    const omega = new THREE.Vector3(fieldValue("omega-x"), fieldValue("omega-y"), fieldValue("omega-z"));
+    const angle = omega.length() * dt;
+    if (angle === 0) return;
+
+    // Kinematic only: rotates at the current omega as a fixed body-frame
+    // axis/rate each frame. It does not solve the actual torque-free
+    // rigid-body equations, so it won't show real precession/wobble for
+    // an asymmetric body, that only appears once the backend's simulation
+    // is wired up and played back. This is just a live visual indicator
+    // so the "Correct Attitude" button has a visible tumble to correct.
+    const increment = new THREE.Quaternion().setFromAxisAngle(omega.normalize(), angle);
+    satelliteMesh.quaternion.multiply(increment);
+}
+
 function animate() {
     requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+    updateLiveTumble(dt);
     controls.update();
     renderer.render(scene, camera);
     updateGizmo();
@@ -345,6 +379,13 @@ function readUserInputs() {
             },
         },
         timeframe: document.querySelector('input[name="timeframe"]:checked').value,
+        // The live preview (see updateLiveTumble) has likely rotated the
+        // satellite away from identity by the time this button is clicked,
+        // so the backend needs the attitude it's actually correcting from,
+        // not just the original angular velocity, or the returned
+        // trajectory won't line up with what's on screen when playback
+        // starts.
+        current_orientation: satelliteMesh.quaternion.toArray(),
     };
 }
 
@@ -371,15 +412,22 @@ correctAttitudeBtn?.addEventListener("click", async () => {
     const params = readUserInputs();
 
     correctAttitudeBtn.disabled = true;
+    liveTumbleEnabled = false;
     simulationStatus.hidden = true;
     simulationStatus.classList.remove("status-error");
 
     try {
         const result = await runSimulation(params);
         // TODO: once the backend returns real time-series data, feed it to
-        // updateWheelSpeedCharts(result) and animateSatellite(result)
+        // updateWheelSpeedCharts(result) and animateSatellite(result).
+        // animateSatellite() should be what re-enables liveTumbleEnabled
+        // once its playback finishes, not this handler.
         console.log("simulation result", result);
     } catch (error) {
+        // Nothing was actually corrected, so let the live preview carry on
+        // from wherever it already was rather than leaving the satellite
+        // frozen because of a failed request.
+        liveTumbleEnabled = true;
         simulationStatus.textContent = `Could not reach the backend: ${error.message}`;
         simulationStatus.classList.add("status-error");
         simulationStatus.hidden = false;
@@ -418,7 +466,11 @@ document.querySelectorAll('input[type="number"]').forEach((input) => {
 const timeframeWarning = document.getElementById("timeframe-warning");
 document.querySelectorAll('input[name="timeframe"]').forEach((radio) => {
     radio.addEventListener("change", (event) => {
-        timeframeWarning.hidden = event.target.value === "seconds";
+        currentTimeframe = event.target.value;
+        timeframeWarning.hidden = currentTimeframe === "seconds";
+        // Hours/days start from a stationary attitude (see CLAUDE.md), so
+        // switching to one drops whatever the live preview had spun up.
+        if (currentTimeframe !== "seconds") satelliteMesh.quaternion.identity();
     });
 });
 

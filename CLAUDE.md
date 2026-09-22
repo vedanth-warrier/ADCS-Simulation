@@ -29,7 +29,7 @@ response including saturation behaviour.
 - A "Correct Attitude" button that triggers the control system
 - Reaction wheel torque shown as rotation vectors in their respective planes
   around the satellite
-- Torque vs time graphs per reaction wheel
+- Speed (RPM) vs time graphs per reaction wheel
 - Timeframe switch: seconds / hours / days (see Timeframe behaviour below)
 
 ## Physics decisions (already made, do not relitigate without flagging why)

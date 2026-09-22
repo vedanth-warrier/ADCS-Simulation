@@ -9,19 +9,30 @@ from scipy.integrate import solve_ivp
 
 
 def moment_of_inertia_box(mass, dimensions):
-    """Return the 3x3 inertia tensor for a rectangular prism satellite.
-
-    TODO: derive from mass and (length, width, height).
+    """Return the inertia tensor of the box.
     """
-    pass
+
+    X,Y,Z = dimensions
+    I_xx = mass/12 * (Y**2 + Z**2)
+    I_yy = mass/12 * (X**2 + Z**2)
+    I_zz = mass/12 * (X**2 + Y**2)
+    return [I_xx, I_yy, I_zz]
 
 
 def equations_of_motion(t, state, inertia, external_torque):
-    """Return the time derivative of the body state (angular velocity, orientation).
+    """Return the time derivative of the body state (orientation, angular velocity).
 
     TODO: Euler's rigid body equations plus quaternion kinematics.
     """
-    pass
+
+    w_dot_x = (external_torque[0] - (inertia[2] - inertia[1])*state[4]*state[5])/inertia[0]
+    w_dot_y = (external_torque[1] - (inertia[0] - inertia[2])*state[5]*state[3])/inertia[1]
+    w_dot_z = (external_torque[2] - (inertia[1] - inertia[0])*state[3]*state[4])/inertia[2]
+
+    return np.array([
+        state[3], state[4], state[5],
+        w_dot_x, w_dot_y, w_dot_z
+            ])
 
 
 def integrate(state0, inertia, external_torque, t_span, t_eval):
@@ -29,4 +40,5 @@ def integrate(state0, inertia, external_torque, t_span, t_eval):
 
     TODO: wire up solve_ivp with equations_of_motion.
     """
-    pass
+
+    return solve_ivp(equations_of_motion, t_span, state0, args=(inertia, external_torque))
