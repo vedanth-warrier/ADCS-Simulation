@@ -20,9 +20,11 @@ def simulate():
     params = request.get_json()
 
     state_initial = np.array([
-        params['current_orientation'][0], params['current_orientation'][1], params['current_orientation'][2],
+        params['current_orientation'][0], params['current_orientation'][1], params['current_orientation'][2], params['current_orientation'][3],
         params['initial_angular_velocity']['x'], params['initial_angular_velocity']['y'], params['initial_angular_velocity']['z']
             ])
+
+    t_span = 30
 
     mass = params['satellite']['mass']
 
@@ -40,21 +42,18 @@ def simulate():
 
     inertia = dynamics.moment_of_inertia_box(mass, dimensions)
 
-    y = dynamics.integrate(state_initial, inertia, [0,0,0], [0,100], 0)
+    y = dynamics.integrate(state_initial, inertia, [0,0,0], [0,t_span], 0)
 
-    roll = y.y[0]
-    pitch = y.y[1]
-    yaw = y.y[2]
+    time = np.linspace(0, t_span, t_span*60)
+    solution = y.sol(time)
 
-    final_x = (np.sin(roll/2)*np.cos(pitch/2)*np.cos(yaw/2) - np.cos(roll/2)*np.sin(pitch/2)*np.sin(yaw/2)).tolist()
-    final_y = (np.cos(roll/2)*np.sin(pitch/2)*np.cos(yaw/2) + np.sin(roll/2)*np.cos(pitch/2)*np.sin(yaw/2)).tolist()
-    final_z = (np.cos(roll/2)*np.cos(pitch/2)*np.sin(yaw/2) - np.sin(roll/2)*np.sin(pitch/2)*np.cos(yaw/2)).tolist()
-    final_w = (np.cos(roll/2)*np.cos(pitch/2)*np.cos(yaw/2) + np.sin(roll/2)*np.sin(pitch/2)*np.sin(yaw/2)).tolist()
+    quarts = [list(row) for row in zip(solution[0], solution[1], solution[2], solution[3])]
+    final_quarts = [(i/np.linalg.norm(i)).tolist() for i in quarts]
 
-    final_quarts = [list(row) for row in zip(final_x, final_y, final_z, final_w)]
+    text = ['Torque-Free Precession' for i in time]
     
     return jsonify({
-        "time": y.t.tolist(),
+        "time": time.tolist(),
         "orientation": final_quarts,
         "rpm": {
             "x": 'placeholder',
@@ -65,7 +64,8 @@ def simulate():
             "x": False,
             "y": False,
             "z": False
-        }
+        },
+        "text": text
             })
 
 

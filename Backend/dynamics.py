@@ -25,20 +25,25 @@ def equations_of_motion(t, state, inertia, external_torque):
     TODO: Euler's rigid body equations plus quaternion kinematics.
     """
 
-    w_dot_x = (external_torque[0] - (inertia[2] - inertia[1])*state[4]*state[5])/inertia[0]
-    w_dot_y = (external_torque[1] - (inertia[0] - inertia[2])*state[5]*state[3])/inertia[1]
-    w_dot_z = (external_torque[2] - (inertia[1] - inertia[0])*state[3]*state[4])/inertia[2]
+    x_dot = 0.5*(state[3]*state[4] + state[1]*state[6] - state[2]*state[5])
+    y_dot = 0.5*(state[3]*state[5] + state[2]*state[4] - state[0]*state[6])
+    z_dot = 0.5*(state[3]*state[6] + state[0]*state[5] - state[1]*state[4])
+    w_dot = -0.5*(state[0]*state[4] + state[1]*state[5] + state[2]*state[6])
+
+    w_dot_x = (external_torque[0] - (inertia[2] - inertia[1])*state[5]*state[6])/inertia[0]
+    w_dot_y = (external_torque[1] - (inertia[0] - inertia[2])*state[6]*state[4])/inertia[1]
+    w_dot_z = (external_torque[2] - (inertia[1] - inertia[0])*state[4]*state[5])/inertia[2]
 
     return np.array([
-        state[3], state[4], state[5],
+        x_dot, y_dot, z_dot, w_dot,
         w_dot_x, w_dot_y, w_dot_z
             ])
 
 
-def integrate(state0, inertia, external_torque, t_span, t_eval):
+def integrate(state0, inertia, external_torque, t_span):
     """Integrate the equations of motion over t_span using scipy.
 
     TODO: wire up solve_ivp with equations_of_motion.
     """
 
-    return solve_ivp(equations_of_motion, t_span, state0, args=(inertia, external_torque))
+    return solve_ivp(equations_of_motion, t_span, state0, args=(inertia, external_torque), dense_output=True)

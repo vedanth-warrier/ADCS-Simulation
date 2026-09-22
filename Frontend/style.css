@@ -68,6 +68,7 @@ header h1 {
     background-image: var(--gradient-accent);
     -webkit-background-clip: text;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     color: transparent;
     width: fit-content;
 }
@@ -142,6 +143,7 @@ main {
     background-image: var(--gradient-accent);
     -webkit-background-clip: text;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     color: transparent;
     width: fit-content;
 }
@@ -297,7 +299,7 @@ main {
 
 .controls-footer {
     flex: 0 0 auto;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     border-top: 1px solid var(--panel-border);
     background: var(--sidebar-footer-bg);
 }
@@ -319,6 +321,25 @@ main {
 #correct-attitude-btn:hover {
     filter: brightness(1.1);
     box-shadow: 0 0 22px rgba(139, 92, 246, 0.45);
+}
+
+.secondary-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.55rem;
+    background: var(--input-btn-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--input-border);
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.secondary-btn:hover {
+    background: var(--panel-border);
+    color: var(--text);
 }
 
 #saturation-flags {
@@ -370,6 +391,7 @@ main {
     background-image: var(--gradient-accent);
     -webkit-background-clip: text;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     color: transparent;
     width: fit-content;
 }
@@ -408,6 +430,25 @@ main {
     color: var(--text-muted);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
+}
+
+.scene-status {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.6rem;
+    z-index: 2;
+    padding: 0.35rem 0.75rem;
+    background: rgba(10, 13, 19, 0.55);
+    border: 1px solid var(--input-border);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    /* Colour is set per status string in script.js (STATUS_COLORS), this is
+    just a fallback shown if that lookup somehow doesn't match. */
+    color: var(--text-muted);
 }
 
 #axis-gizmo {

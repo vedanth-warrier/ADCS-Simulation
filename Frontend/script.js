@@ -22,6 +22,10 @@ let currentTimeframe = "seconds";
 // already happening.
 let liveTumbleEnabled = true;
 
+// Set by animateSatellite() while a returned trajectory is being played back,
+// cleared once playback finishes. null means no playback in progress.
+let playback = null;
+
 const AXIS_COLORS = { x: "#ff6b6b", y: "#6bff8f", z: "#6ba8ff" };
 
 function getSatelliteDimensions() {
@@ -98,7 +102,11 @@ function updateLiveTumble(dt) {
 function animate() {
     requestAnimationFrame(animate);
     const dt = clock.getDelta();
-    updateLiveTumble(dt);
+    if (playback) {
+        updatePlayback();
+    } else {
+        updateLiveTumble(dt);
+    }
     controls.update();
     renderer.render(scene, camera);
     updateGizmo();
@@ -401,12 +409,98 @@ async function runSimulation(params) {
     return response.json();
 }
 
+// Finds the returned sample index whose interval [times[i], times[i+1]]
+// contains simTime. solve_ivp's adaptive stepping means the `time` array
+// isn't evenly spaced, so this can't just index by a fixed frame rate, it
+// has to search for the bracketing pair each call.
+function sampleIndexAtSimTime(simTime) {
+    const { times } = playback;
+    if (simTime <= times[0]) return 0;
+    if (simTime >= times[times.length - 1]) return times.length - 1;
+
+    let i = 0;
+    while (i < times.length - 1 && times[i + 1] < simTime) i++;
+    return i;
+}
+
+// Slerps between the two returned orientation samples either side of simTime.
+function quaternionAtSimTime(simTime) {
+    const { times, quaternions } = playback;
+    const i = sampleIndexAtSimTime(simTime);
+    if (i >= times.length - 1) return quaternions[quaternions.length - 1];
+
+    const span = times[i + 1] - times[i];
+    const t = span === 0 ? 0 : (simTime - times[i]) / span;
+    // slerpQuaternions() exists in this three.js build but silently returns
+    // undefined instead of interpolating, so clone()+slerp() is used instead
+    // (the older, more reliably supported instance method).
+    return quaternions[i].clone().slerp(quaternions[i + 1], t);
+}
+
+// Maps the exact status strings the backend sends in stateTimeSeries.text to
+// a display colour: red while precessing freely, yellow while the wheels are
+// actively correcting, green once stable.
+const STATUS_COLORS = {
+    "Torque-Free Precession": "#ff6b6b",
+    "Applying Correction": "#f5c518",
+    "Stability Achieved": "#4ade80",
+};
+
+function updateStatusLabel(text) {
+    if (!text) return;
+    sceneStatusLabel.textContent = text;
+    sceneStatusLabel.style.color = STATUS_COLORS[text] || "";
+    sceneStatusLabel.hidden = false;
+}
+
+function updatePlayback() {
+    const elapsedWall = (performance.now() - playback.wallStart) / 1000;
+    // Played back 1:1 against simulated seconds (the returned time span
+    // itself, not a fixed guess), so playback length tracks however long the
+    // correction actually took rather than compressing/stretching it.
+    const progress = playback.durationSeconds === 0 ? 1 : Math.min(elapsedWall / playback.durationSeconds, 1);
+    const simTime = playback.simStart + progress * (playback.simEnd - playback.simStart);
+
+    satelliteMesh.quaternion.copy(quaternionAtSimTime(simTime));
+    if (playback.texts) updateStatusLabel(playback.texts[sampleIndexAtSimTime(simTime)]);
+
+    if (progress >= 1) {
+        // Correction has finished: hold this attitude rather than resuming
+        // the live tumble preview, which would spin the satellite again
+        // using the pre-correction angular velocity and misrepresent it as
+        // still tumbling.
+        playback = null;
+    }
+}
+
 function animateSatellite(stateTimeSeries) {
-    // TODO: step the satellite mesh through returned orientation quaternions
+    const { time, orientation, text } = stateTimeSeries;
+    if (!time || !orientation || time.length === 0) {
+        // Nothing to play back, don't leave the satellite frozen forever.
+        liveTumbleEnabled = true;
+        return;
+    }
+
+    const simStart = time[0];
+    const simEnd = time[time.length - 1];
+
+    playback = {
+        times: time,
+        quaternions: orientation.map(([x, y, z, w]) => new THREE.Quaternion(x, y, z, w)),
+        texts: text,
+        simStart,
+        simEnd,
+        durationSeconds: simEnd - simStart,
+        wallStart: performance.now(),
+    };
 }
 
 const correctAttitudeBtn = document.getElementById("correct-attitude-btn");
+const resetBtn = document.getElementById("reset-btn");
 const simulationStatus = document.getElementById("simulation-status");
+const sceneStatusLabel = document.getElementById("scene-status");
+
+resetBtn?.addEventListener("click", () => location.reload());
 
 correctAttitudeBtn?.addEventListener("click", async () => {
     const params = readUserInputs();
@@ -418,11 +512,8 @@ correctAttitudeBtn?.addEventListener("click", async () => {
 
     try {
         const result = await runSimulation(params);
-        // TODO: once the backend returns real time-series data, feed it to
-        // updateWheelSpeedCharts(result) and animateSatellite(result).
-        // animateSatellite() should be what re-enables liveTumbleEnabled
-        // once its playback finishes, not this handler.
-        console.log("simulation result", result);
+        updateWheelSpeedCharts(result);
+        animateSatellite(result);
     } catch (error) {
         // Nothing was actually corrected, so let the live preview carry on
         // from wherever it already was rather than leaving the satellite
