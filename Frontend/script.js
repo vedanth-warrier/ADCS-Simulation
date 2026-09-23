@@ -418,7 +418,11 @@ function readUserInputs() {
         },
         reaction_wheels: readWheelInputs(),
         disturbance_torque: {
-            magnitude: fieldValue("disturbance-magnitude"),
+            // The UI splits this into a mantissa [0,10) and a power-of-ten
+            // exponent so extreme magnitudes stay easy to dial in precisely,
+            // but the backend still just gets one combined number, same as
+            // before.
+            magnitude: fieldValue("disturbance-magnitude-mantissa") * Math.pow(10, fieldValue("disturbance-magnitude-exponent")),
             direction: {
                 x: fieldValue("disturbance-dir-x"),
                 y: fieldValue("disturbance-dir-y"),
@@ -590,9 +594,15 @@ correctAttitudeBtn?.addEventListener("click", async () => {
     }
 });
 
+// Fields where a fractional value doesn't mean anything (a power of ten has
+// to be a whole number), rounded here rather than blocked at the keyboard so
+// it behaves the same as every other field's blur/stepper correction.
+const integerOnlyIds = ["disturbance-magnitude-exponent"];
+
 function clampToRange(input, value) {
     if (input.min !== "" && value < parseFloat(input.min)) value = parseFloat(input.min);
     if (input.max !== "" && value > parseFloat(input.max)) value = parseFloat(input.max);
+    if (integerOnlyIds.includes(input.id)) value = Math.round(value);
     return value;
 }
 

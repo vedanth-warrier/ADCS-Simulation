@@ -53,7 +53,7 @@
 
                 <section class="panel-section">
                     <h2>Satellite Properties</h2>
-                    <p class="section-hint">Modelled as a rectangular prism, not a sphere, so moment of inertia differs per axis.</p>
+                    <p class="section-hint">Modelled as a rectangular prism, hence differing moments of inertia per axes.</p>
                     <div class="field">
                         <label for="sat-mass">Mass excluding reaction wheels (kg)</label>
                         <div class="stepper">
@@ -136,14 +136,22 @@
                     <h2>Disturbance Torque</h2>
                     <p class="section-hint">Simplified stand-in for combined solar pressure, drag and gravity-gradient effects. Active in hours/days mode only.</p>
                     <div class="field">
-                        <label for="disturbance-magnitude">Magnitude (N&middot;m)</label>
-                        <div class="stepper">
-                            <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-magnitude" aria-label="Decrease">&minus;</button>
-                            <input type="number" id="disturbance-magnitude" min="0" max="100" step="1" value="1">
-                            <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-magnitude" aria-label="Increase">+</button>
+                        <label for="disturbance-magnitude-mantissa">Magnitude (N&middot;m)</label>
+                        <div class="scientific-input">
+                            <div class="stepper">
+                                <button type="button" class="stepper-btn" data-step="-0.1" data-target="disturbance-magnitude-mantissa" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="disturbance-magnitude-mantissa" min="0.01" max="9.99" step="0.1" value="1">
+                                <button type="button" class="stepper-btn" data-step="0.1" data-target="disturbance-magnitude-mantissa" aria-label="Increase">+</button>
+                            </div>
+                            <span class="sci-notation-times" aria-hidden="true">&times; 10</span>
+                            <div class="stepper stepper-exponent">
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-magnitude-exponent" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="disturbance-magnitude-exponent" min="-9" max="0" step="1" value="0">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-magnitude-exponent" aria-label="Increase">+</button>
+                            </div>
                         </div>
                     </div>
-                    <p class="field-group-label">Direction vector along X, Y, Z</p>
+                    <p class="field-group-label">Direction vector along X, Y, Z (Un-normalised)</p>
                     <div class="triplet">
                         <div class="field">
                             <label for="disturbance-dir-x">X</label>

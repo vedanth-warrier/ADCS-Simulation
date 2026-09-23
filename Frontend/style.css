@@ -196,6 +196,32 @@ main {
     margin-bottom: 0.3rem;
 }
 
+/* Scientific notation input: mantissa stepper, a "x 10" connector, then a
+narrower exponent stepper, laid out so the mantissa/exponent relationship
+reads as standard scientific notation with no label needed. */
+.scientific-input {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.scientific-input .stepper {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.scientific-input .stepper-exponent {
+    flex: 0 0 5.5rem;
+}
+
+.sci-notation-times {
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
 /* Stepper inputs */
 
 .stepper {
