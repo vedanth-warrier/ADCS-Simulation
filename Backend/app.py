@@ -18,13 +18,16 @@ def simulate():
     return orientation quaternions plus wheel torque/spin data as JSON.
     """
     params = request.get_json()
+    frequency = 60
+    sample_frequency = 120
+    t_precession_end = 5
+    stability_end = 5
+    correction_max_time = 500
 
     state_initial = np.array([
         params['current_orientation'][0], params['current_orientation'][1], params['current_orientation'][2], params['current_orientation'][3],
         params['initial_angular_velocity']['x'], params['initial_angular_velocity']['y'], params['initial_angular_velocity']['z']
             ])
-
-    t_span = 30
 
     mass = params['satellite']['mass']
 
@@ -34,31 +37,43 @@ def simulate():
         params['satellite']['dimensions']['z']
             ])
 
-    reaction_wheel_1 = params['reaction_wheels']['x']
+    reaction_wheel_params = params["reaction_wheels"]
 
-    reaction_wheel_2 = params['reaction_wheels']['y']
+    inertia = dynamics.moment_of_inertia_box(mass+3*reaction_wheel_params['mass'], dimensions)
 
-    reaction_wheel_3 = params['reaction_wheels']['z']
+    precession_solution = dynamics.integrate(state_initial, inertia, [0,0,0], [0, t_precession_end])
+    t_precession = np.linspace(0, t_precession_end, t_precession_end*frequency)
+    y_precession = precession_solution.sol(t_precession)
+    RPM_precession = [[0 for i in t_precession] for j in range(3)]
+    text_precession = ['Torque-Free Precession' for i in t_precession]
 
-    inertia = dynamics.moment_of_inertia_box(mass, dimensions)
+    state_post_precession = y_precession[:, -1]
+    t_correction, y_correction, RPM_correction = dynamics.velocity_correction(state_post_precession, reaction_wheel_params, inertia, correction_max_time, t_precession_end, sample_frequency)
+    text_correction = ['Applying Correction' for i in t_correction]
 
-    y = dynamics.integrate(state_initial, inertia, [0,0,0], [0,t_span], 0)
+    state_post_correction = y_correction[:, -1]
+    time_post_correction = t_correction[-1]
+    stability_solution = dynamics.integrate(state_post_correction, inertia, [0,0,0], [time_post_correction, time_post_correction + stability_end])
+    t_stability = np.linspace(time_post_correction, time_post_correction + stability_end, stability_end*frequency)
+    y_stability = stability_solution.sol(t_stability)
+    RPM_stability = [[RPM_correction[j][-1] for i in t_stability] for j in range(3)]
+    text_stability = ['Stability Achieved' for i in t_stability]
 
-    time = np.linspace(0, t_span, t_span*60)
-    solution = y.sol(time)
+    time = np.concatenate([t_precession, t_correction, t_stability]).tolist()
+    y_values = np.concatenate([y_precession, y_correction, y_stability], axis=1).tolist()
+    RPM_values = np.concatenate([RPM_precession, RPM_correction, RPM_stability], axis=1).tolist()
+    text = np.concatenate([text_precession, text_correction, text_stability]).tolist()
 
-    quarts = [list(row) for row in zip(solution[0], solution[1], solution[2], solution[3])]
+    quarts = [list(row) for row in zip(y_values[0], y_values[1], y_values[2], y_values[3])]
     final_quarts = [(i/np.linalg.norm(i)).tolist() for i in quarts]
-
-    text = ['Torque-Free Precession' for i in time]
     
     return jsonify({
-        "time": time.tolist(),
+        "time": time,
         "orientation": final_quarts,
         "rpm": {
-            "x": 'placeholder',
-            "y": 'placeholder',
-            "z": 'placeholder',
+            "x": RPM_values[0],
+            "y": RPM_values[1],
+            "z": RPM_values[2],
         },
         "saturated": {
             "x": False,

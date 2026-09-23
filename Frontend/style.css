@@ -186,6 +186,16 @@ main {
     margin-bottom: 0.3rem;
 }
 
+.quad {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.quad .field {
+    margin-bottom: 0.3rem;
+}
+
 /* Stepper inputs */
 
 .stepper {

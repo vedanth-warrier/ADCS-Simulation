@@ -312,8 +312,16 @@ function createWheelSpeedChart(canvasId, color) {
             },
             scales: {
                 x: {
+                    // Linear, not category: the raw returned time samples are
+                    // unevenly spaced (adaptive solver steps), so plotting
+                    // them as category labels put a tick at every single
+                    // value. A linear scale with an explicit stepSize (set
+                    // per-run in configureChartTimeAxis) draws clean ticks at
+                    // fixed intervals instead.
+                    type: "linear",
+                    min: 0,
                     title: { display: true, text: "Time (s)", color: "#8b95a5", font: { size: 10 } },
-                    ticks: { color: "#8b95a5", font: { size: 9 }, maxTicksLimit: 6 },
+                    ticks: { color: "#8b95a5", font: { size: 9 } },
                     grid: { color: "rgba(139, 149, 165, 0.12)" },
                 },
                 y: {
@@ -336,16 +344,48 @@ function initWheelSpeedCharts() {
     };
 }
 
-// Expected shape once the backend /simulate endpoint is wired up:
-// { time: [t0, t1, ...], rpm: { x: [...], y: [...], z: [...] } },
-// all arrays the same length. Axes autoscale to whatever range is passed.
-function updateWheelSpeedCharts(simulationData) {
+// Picks a gridline spacing from {1, 2, 5, 10} seconds, the smallest of those
+// that keeps the number of gridlines across finalTime reasonable (defaults
+// to 10 for a finalTime large enough that even that is a lot of gridlines).
+function niceTimeStep(finalTime) {
+    const candidates = [1, 2, 5, 10];
+    const targetTicks = 8;
+    for (const step of candidates) {
+        if (finalTime / step <= targetTicks) return step;
+    }
+    return 10;
+}
+
+// Fixes each chart's x-axis range/spacing to the full run up front (rather
+// than autoscaling as data streams in during playback), so the grid stays
+// stable instead of jumping around while the graph fills in.
+function configureChartTimeAxis(finalTime) {
+    const stepSize = niceTimeStep(finalTime);
+    ["x", "y", "z"].forEach((axis) => {
+        const scale = wheelSpeedCharts[axis].options.scales.x;
+        scale.max = finalTime;
+        scale.ticks.stepSize = stepSize;
+    });
+}
+
+// { time: [t0, t1, ...], rpm: { x: [...], y: [...], z: [...] } }, all arrays
+// the same length. uptoIndex draws only the data up to that sample (used to
+// reveal the graph in step with the 3D playback rather than dumping the
+// whole trace at once); omit it to plot everything.
+function updateWheelSpeedCharts(simulationData, uptoIndex) {
     const { time, rpm } = simulationData;
+    const end = uptoIndex === undefined ? time.length : uptoIndex + 1;
     ["x", "y", "z"].forEach((axis) => {
         const chart = wheelSpeedCharts[axis];
-        chart.data.labels = time;
-        chart.data.datasets[0].data = rpm[axis];
+        chart.data.datasets[0].data = time.slice(0, end).map((t, i) => ({ x: t, y: rpm[axis][i] }));
         chart.update();
+    });
+}
+
+function resetWheelSpeedCharts() {
+    ["x", "y", "z"].forEach((axis) => {
+        wheelSpeedCharts[axis].data.datasets[0].data = [];
+        wheelSpeedCharts[axis].update();
     });
 }
 
@@ -353,11 +393,14 @@ function fieldValue(id) {
     return parseFloat(document.getElementById(id).value) || 0;
 }
 
-function readWheelInputs(axis) {
+// All three reaction wheels are assumed identical, so there's one shared
+// set of properties rather than a separate one per axis.
+function readWheelInputs() {
     return {
-        mass: fieldValue(`wheel-${axis}-mass`),
-        radius: fieldValue(`wheel-${axis}-radius`),
-        max_rpm: fieldValue(`wheel-${axis}-max-rpm`),
+        mass: fieldValue("wheel-mass"),
+        radius: fieldValue("wheel-radius"),
+        max_rpm: fieldValue("wheel-max-rpm"),
+        max_spinup_rate: fieldValue("wheel-max-spinup"),
     };
 }
 
@@ -373,11 +416,7 @@ function readUserInputs() {
             mass: fieldValue("sat-mass"),
             dimensions,
         },
-        reaction_wheels: {
-            x: readWheelInputs("x"),
-            y: readWheelInputs("y"),
-            z: readWheelInputs("z"),
-        },
+        reaction_wheels: readWheelInputs(),
         disturbance_torque: {
             magnitude: fieldValue("disturbance-magnitude"),
             direction: {
@@ -460,9 +499,15 @@ function updatePlayback() {
     // correction actually took rather than compressing/stretching it.
     const progress = playback.durationSeconds === 0 ? 1 : Math.min(elapsedWall / playback.durationSeconds, 1);
     const simTime = playback.simStart + progress * (playback.simEnd - playback.simStart);
+    const index = sampleIndexAtSimTime(simTime);
 
     satelliteMesh.quaternion.copy(quaternionAtSimTime(simTime));
-    if (playback.texts) updateStatusLabel(playback.texts[sampleIndexAtSimTime(simTime)]);
+    if (playback.texts) updateStatusLabel(playback.texts[index]);
+    // Reveals the RPM graphs in step with the 3D playback, using the same
+    // simTime/index the orientation and status label are driven from, rather
+    // than dumping the whole trace onto the chart the instant the response
+    // arrives.
+    if (playback.rpm) updateWheelSpeedCharts({ time: playback.times, rpm: playback.rpm }, index);
 
     if (progress >= 1) {
         // Correction has finished: hold this attitude rather than resuming
@@ -474,7 +519,7 @@ function updatePlayback() {
 }
 
 function animateSatellite(stateTimeSeries) {
-    const { time, orientation, text } = stateTimeSeries;
+    const { time, orientation, text, rpm } = stateTimeSeries;
     if (!time || !orientation || time.length === 0) {
         // Nothing to play back, don't leave the satellite frozen forever.
         liveTumbleEnabled = true;
@@ -484,10 +529,14 @@ function animateSatellite(stateTimeSeries) {
     const simStart = time[0];
     const simEnd = time[time.length - 1];
 
+    resetWheelSpeedCharts();
+    configureChartTimeAxis(simEnd);
+
     playback = {
         times: time,
         quaternions: orientation.map(([x, y, z, w]) => new THREE.Quaternion(x, y, z, w)),
         texts: text,
+        rpm,
         simStart,
         simEnd,
         durationSeconds: simEnd - simStart,
@@ -500,7 +549,21 @@ const resetBtn = document.getElementById("reset-btn");
 const simulationStatus = document.getElementById("simulation-status");
 const sceneStatusLabel = document.getElementById("scene-status");
 
-resetBtn?.addEventListener("click", () => location.reload());
+// Resets the simulation, not the page: inputs are left exactly as the user
+// set them, only the 3D attitude, RPM graphs and status indicators go back
+// to their pre-"Correct Attitude" state.
+function resetSimulationState() {
+    playback = null;
+    liveTumbleEnabled = true;
+    satelliteMesh.quaternion.identity();
+    resetWheelSpeedCharts();
+    sceneStatusLabel.hidden = true;
+    simulationStatus.hidden = true;
+    simulationStatus.classList.remove("status-error");
+    correctAttitudeBtn.disabled = false;
+}
+
+resetBtn?.addEventListener("click", resetSimulationState);
 
 correctAttitudeBtn?.addEventListener("click", async () => {
     const params = readUserInputs();
@@ -512,7 +575,6 @@ correctAttitudeBtn?.addEventListener("click", async () => {
 
     try {
         const result = await runSimulation(params);
-        updateWheelSpeedCharts(result);
         animateSatellite(result);
     } catch (error) {
         // Nothing was actually corrected, so let the live preview carry on
@@ -548,8 +610,17 @@ document.querySelectorAll(".stepper-btn").forEach((btn) => {
 
 document.querySelectorAll('input[type="number"]').forEach((input) => {
     input.addEventListener("change", () => {
-        if (input.value === "") return;
-        input.value = clampToRange(input, parseFloat(input.value));
+        if (input.value === "") {
+            // A field left empty on blur falls back to its minimum if it has
+            // one (fields where 0 is physically impossible, e.g. mass), or
+            // to 0 otherwise (fields where 0 is a legitimate value, e.g.
+            // angular velocity), rather than silently sending whatever
+            // parseFloat("") || 0 would have produced without the user
+            // seeing it reflected in the field.
+            input.value = input.min !== "" ? input.min : "0";
+        } else {
+            input.value = clampToRange(input, parseFloat(input.value));
+        }
         if (satelliteDimensionIds.includes(input.id)) updateSatelliteScale();
     });
 });

@@ -58,7 +58,7 @@
                         <label for="sat-mass">Mass excluding reaction wheels (kg)</label>
                         <div class="stepper">
                             <button type="button" class="stepper-btn" data-step="-1" data-target="sat-mass" aria-label="Decrease">&minus;</button>
-                            <input type="number" id="sat-mass" min="0" step="1" value="5">
+                            <input type="number" id="sat-mass" min="0.5" step="1" value="5">
                             <button type="button" class="stepper-btn" data-step="1" data-target="sat-mass" aria-label="Increase">+</button>
                         </div>
                     </div>
@@ -68,7 +68,7 @@
                             <label for="sat-dim-x">X</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="sat-dim-x" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="sat-dim-x" min="0" step="0.5" value="1">
+                                <input type="number" id="sat-dim-x" min="0.1" step="0.5" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="sat-dim-x" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -76,7 +76,7 @@
                             <label for="sat-dim-y">Y</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="sat-dim-y" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="sat-dim-y" min="0" step="0.5" value="1">
+                                <input type="number" id="sat-dim-y" min="0.1" step="0.5" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="sat-dim-y" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -84,7 +84,7 @@
                             <label for="sat-dim-z">Z</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="sat-dim-z" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="sat-dim-z" min="0" step="0.5" value="1">
+                                <input type="number" id="sat-dim-z" min="0.1" step="0.5" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="sat-dim-z" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -93,88 +93,40 @@
 
                 <section class="panel-section">
                     <h2>Reaction Wheels</h2>
-                    <p class="section-hint">One wheel per orthogonal axis for full three-axis control.</p>
+                    <p class="section-hint">One shared set of properties, applied to all three orthogonal wheels (assumed identical).</p>
 
-                    <p class="field-group-label">Wheel X, mass (kg) / radius (m) / max speed (RPM)</p>
-                    <div class="triplet">
+                    <p class="field-group-label">Mass (kg) / radius (m) / max speed (RPM) / max spin-up rate (RPM/s)</p>
+                    <div class="quad">
                         <div class="field">
-                            <label for="wheel-x-mass">Mass</label>
+                            <label for="wheel-mass">Mass</label>
                             <div class="stepper">
-                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-x-mass" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-x-mass" min="0" step="1" value="1">
-                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-x-mass" aria-label="Increase">+</button>
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-mass" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-mass" min="0.5" step="1" value="1">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-mass" aria-label="Increase">+</button>
                             </div>
                         </div>
                         <div class="field">
-                            <label for="wheel-x-radius">Radius</label>
+                            <label for="wheel-radius">Radius</label>
                             <div class="stepper">
-                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-x-radius" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-x-radius" min="0" step="0.5" value="0.5">
-                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-x-radius" aria-label="Increase">+</button>
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-radius" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-radius" min="0.1" step="0.5" value="0.5">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-radius" aria-label="Increase">+</button>
                             </div>
                         </div>
                         <div class="field">
-                            <label for="wheel-x-max-rpm">Max RPM</label>
+                            <label for="wheel-max-rpm">Max RPM</label>
                             <div class="stepper">
-                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-x-max-rpm" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-x-max-rpm" min="0" step="100" value="5000">
-                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-x-max-rpm" aria-label="Increase">+</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <p class="field-group-label">Wheel Y, mass (kg) / radius (m) / max speed (RPM)</p>
-                    <div class="triplet">
-                        <div class="field">
-                            <label for="wheel-y-mass">Mass</label>
-                            <div class="stepper">
-                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-y-mass" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-y-mass" min="0" step="1" value="1">
-                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-y-mass" aria-label="Increase">+</button>
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-max-rpm" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-max-rpm" min="1" step="100" value="5000">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-max-rpm" aria-label="Increase">+</button>
                             </div>
                         </div>
                         <div class="field">
-                            <label for="wheel-y-radius">Radius</label>
+                            <label for="wheel-max-spinup">Max Spin-Up Rate</label>
                             <div class="stepper">
-                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-y-radius" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-y-radius" min="0" step="0.5" value="0.5">
-                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-y-radius" aria-label="Increase">+</button>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label for="wheel-y-max-rpm">Max RPM</label>
-                            <div class="stepper">
-                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-y-max-rpm" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-y-max-rpm" min="0" step="100" value="5000">
-                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-y-max-rpm" aria-label="Increase">+</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <p class="field-group-label">Wheel Z, mass (kg) / radius (m) / max speed (RPM)</p>
-                    <div class="triplet">
-                        <div class="field">
-                            <label for="wheel-z-mass">Mass</label>
-                            <div class="stepper">
-                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-z-mass" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-z-mass" min="0" step="1" value="1">
-                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-z-mass" aria-label="Increase">+</button>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label for="wheel-z-radius">Radius</label>
-                            <div class="stepper">
-                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-z-radius" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-z-radius" min="0" step="0.5" value="0.5">
-                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-z-radius" aria-label="Increase">+</button>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label for="wheel-z-max-rpm">Max RPM</label>
-                            <div class="stepper">
-                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-z-max-rpm" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-z-max-rpm" min="0" step="100" value="5000">
-                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-z-max-rpm" aria-label="Increase">+</button>
+                                <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-max-spinup" aria-label="Decrease">&minus;</button>
+                                <input type="number" id="wheel-max-spinup" min="1" step="100" value="1000">
+                                <button type="button" class="stepper-btn" data-step="1" data-target="wheel-max-spinup" aria-label="Increase">+</button>
                             </div>
                         </div>
                     </div>
