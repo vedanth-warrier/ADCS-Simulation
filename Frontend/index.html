@@ -28,7 +28,7 @@
                             <label for="omega-x">X</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="omega-x" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="omega-x" step="0.1" value="0">
+                                <input type="number" id="omega-x" max="100" step="0.1" value="0">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="omega-x" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -36,7 +36,7 @@
                             <label for="omega-y">Y</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="omega-y" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="omega-y" step="0.1" value="0">
+                                <input type="number" id="omega-y" max="100" step="0.1" value="0">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="omega-y" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -44,7 +44,7 @@
                             <label for="omega-z">Z</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="omega-z" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="omega-z" step="0.1" value="0">
+                                <input type="number" id="omega-z" max="100" step="0.1" value="0">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="omega-z" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -58,7 +58,7 @@
                         <label for="sat-mass">Mass excluding reaction wheels (kg)</label>
                         <div class="stepper">
                             <button type="button" class="stepper-btn" data-step="-1" data-target="sat-mass" aria-label="Decrease">&minus;</button>
-                            <input type="number" id="sat-mass" min="0.5" step="1" value="5">
+                            <input type="number" id="sat-mass" min="0.5" max="100" step="1" value="5">
                             <button type="button" class="stepper-btn" data-step="1" data-target="sat-mass" aria-label="Increase">+</button>
                         </div>
                     </div>
@@ -68,7 +68,7 @@
                             <label for="sat-dim-x">X</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="sat-dim-x" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="sat-dim-x" min="0.1" step="0.5" value="1">
+                                <input type="number" id="sat-dim-x" min="0.1" max="10" step="0.5" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="sat-dim-x" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -76,7 +76,7 @@
                             <label for="sat-dim-y">Y</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="sat-dim-y" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="sat-dim-y" min="0.1" step="0.5" value="1">
+                                <input type="number" id="sat-dim-y" min="0.1" max="10" step="0.5" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="sat-dim-y" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -84,7 +84,7 @@
                             <label for="sat-dim-z">Z</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="sat-dim-z" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="sat-dim-z" min="0.1" step="0.5" value="1">
+                                <input type="number" id="sat-dim-z" min="0.1" max="10" step="0.5" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="sat-dim-z" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -101,7 +101,7 @@
                             <label for="wheel-mass">Mass</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-mass" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-mass" min="0.5" step="1" value="1">
+                                <input type="number" id="wheel-mass" min="0.5" max="100" step="1" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="wheel-mass" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -109,7 +109,7 @@
                             <label for="wheel-radius">Radius</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-radius" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-radius" min="0.1" step="0.5" value="0.5">
+                                <input type="number" id="wheel-radius" min="0.1" max="10" step="0.5" value="0.5">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="wheel-radius" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -117,7 +117,7 @@
                             <label for="wheel-max-rpm">Max RPM</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-max-rpm" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-max-rpm" min="1" step="100" value="5000">
+                                <input type="number" id="wheel-max-rpm" min="1" max="10000" step="100" value="5000">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="wheel-max-rpm" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -125,7 +125,7 @@
                             <label for="wheel-max-spinup">Max Spin-Up Rate</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="wheel-max-spinup" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="wheel-max-spinup" min="1" step="100" value="1000">
+                                <input type="number" id="wheel-max-spinup" min="1" max="10000" step="100" value="1000">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="wheel-max-spinup" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -139,7 +139,7 @@
                         <label for="disturbance-magnitude">Magnitude (N&middot;m)</label>
                         <div class="stepper">
                             <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-magnitude" aria-label="Decrease">&minus;</button>
-                            <input type="number" id="disturbance-magnitude" min="0" step="1" value="1">
+                            <input type="number" id="disturbance-magnitude" min="0" max="100" step="1" value="1">
                             <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-magnitude" aria-label="Increase">+</button>
                         </div>
                     </div>
@@ -149,7 +149,7 @@
                             <label for="disturbance-dir-x">X</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-dir-x" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="disturbance-dir-x" step="1" value="1">
+                                <input type="number" id="disturbance-dir-x" max="100" step="1" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-dir-x" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -157,7 +157,7 @@
                             <label for="disturbance-dir-y">Y</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-dir-y" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="disturbance-dir-y" step="1" value="1">
+                                <input type="number" id="disturbance-dir-y" max="100" step="1" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-dir-y" aria-label="Increase">+</button>
                             </div>
                         </div>
@@ -165,7 +165,7 @@
                             <label for="disturbance-dir-z">Z</label>
                             <div class="stepper">
                                 <button type="button" class="stepper-btn" data-step="-1" data-target="disturbance-dir-z" aria-label="Decrease">&minus;</button>
-                                <input type="number" id="disturbance-dir-z" step="1" value="1">
+                                <input type="number" id="disturbance-dir-z" max="100" step="1" value="1">
                                 <button type="button" class="stepper-btn" data-step="1" data-target="disturbance-dir-z" aria-label="Increase">+</button>
                             </div>
                         </div>

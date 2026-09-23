@@ -483,6 +483,7 @@ const STATUS_COLORS = {
     "Torque-Free Precession": "#ff6b6b",
     "Applying Correction": "#f5c518",
     "Stability Achieved": "#4ade80",
+    "Saturated": "#ff6b6b",
 };
 
 function updateStatusLabel(text) {

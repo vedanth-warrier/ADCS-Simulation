@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import dynamics
 import numpy as np
+import scipy.interpolate as interpolate
 
 app = Flask(__name__)
 CORS(app)
@@ -22,7 +23,7 @@ def simulate():
     sample_frequency = 120
     t_precession_end = 5
     stability_end = 5
-    correction_max_time = 500
+    correction_max_time = 100
 
     state_initial = np.array([
         params['current_orientation'][0], params['current_orientation'][1], params['current_orientation'][2], params['current_orientation'][3],
@@ -48,16 +49,26 @@ def simulate():
     text_precession = ['Torque-Free Precession' for i in t_precession]
 
     state_post_precession = y_precession[:, -1]
-    t_correction, y_correction, RPM_correction = dynamics.velocity_correction(state_post_precession, reaction_wheel_params, inertia, correction_max_time, t_precession_end, sample_frequency)
+    t_correction, y_correction, RPM_correction, saturated, ran = dynamics.correction(state_post_precession, reaction_wheel_params, inertia, correction_max_time, t_precession_end, sample_frequency, 1, 1)
     text_correction = ['Applying Correction' for i in t_correction]
 
-    state_post_correction = y_correction[:, -1]
-    time_post_correction = t_correction[-1]
+    if ran:
+        state_post_correction = y_correction[:, -1]
+        time_post_correction = t_correction[-1]
+    else:
+        state_post_correction = state_post_precession
+        time_post_correction = t_precession_end
     stability_solution = dynamics.integrate(state_post_correction, inertia, [0,0,0], [time_post_correction, time_post_correction + stability_end])
     t_stability = np.linspace(time_post_correction, time_post_correction + stability_end, stability_end*frequency)
     y_stability = stability_solution.sol(t_stability)
-    RPM_stability = [[RPM_correction[j][-1] for i in t_stability] for j in range(3)]
-    text_stability = ['Stability Achieved' for i in t_stability]
+    if ran:
+        RPM_stability = [[RPM_correction[j][-1] for i in t_stability] for j in range(3)]
+    else:
+        RPM_stability = [[0 for i in t_stability] for j in range(3)]
+    if np.any(saturated):
+        text_stability = ['Saturated' for i in t_stability]
+    else:
+        text_stability = ['Stability Achieved' for i in t_stability]
 
     time = np.concatenate([t_precession, t_correction, t_stability]).tolist()
     y_values = np.concatenate([y_precession, y_correction, y_stability], axis=1).tolist()
@@ -76,9 +87,9 @@ def simulate():
             "z": RPM_values[2],
         },
         "saturated": {
-            "x": False,
-            "y": False,
-            "z": False
+            "x": saturated[0],
+            "y": saturated[1],
+            "z": saturated[2]
         },
         "text": text
             })
