@@ -48,9 +48,13 @@ def integrate(state0, inertia, external_torque, t_span, reltol = 1e-3, abstol = 
 
     return solve_ivp(equations_of_motion, t_span, state0, args=(inertia, external_torque), dense_output=True, atol = abstol, rtol = reltol)
 
-def saturation_function(t, t_sat, RPM_max):
-    RPM_list = [RPM_max * i / t_sat if i<t_sat else RPM_max for i in t]
-    sat_list = [False if i<t_sat else True for i in t]
+def saturation_function(t, t_sat, RPM_max, external_torque):
+    if external_torque != 0:
+        RPM_list = [(external_torque/abs(external_torque)) * RPM_max * i / t_sat if i<t_sat else (external_torque/abs(external_torque)) *  RPM_max for i in t]
+        sat_list = [False if i<t_sat else True for i in t]
+    else:
+        RPM_list = [0 for i in t]
+        sat_list = [False for i in t]
 
     return [RPM_list, sat_list]
 
@@ -133,67 +137,27 @@ def correction(precession_state, reaction_wheels, inertia, t_max, t_start, sampl
 
     return [t_output, y_output, RPM_output, saturated, ran]
 
-def long_timeframe(t_length, unstable_t_length, torque, direction_vector, inertia, reaction_wheels, sampling_frequency, frequency):
+def long_timeframe(t_length, unstable_t_length, torque, direction_vector, reaction_wheels, frequency):
     RW_radius = reaction_wheels["radius"]
     RW_mass = reaction_wheels["mass"]
     RW_RPM = reaction_wheels["max_rpm"]
-    RW_spin_up = reaction_wheels["max_spinup_rate"]
     RW_inertia = 0.5 * RW_mass * RW_radius**2
 
     external_torque = direction_vector/np.linalg.norm(direction_vector) * torque
 
     t_sat = [0,0,0]
-    t_sat_lookup = {0: 'x', 1: 'y', 2: 'z'}
     for i in range(3):
-        t_sat[i] = (RW_RPM * np.pi/30) * RW_inertia / abs(external_torque[i])
-    t_sat_clone = t_sat.copy()
-
-    sat_first = [t_sat_lookup[t_sat_clone.index(min(t_sat_clone))], min(t_sat_clone)]
-    t_sat_clone[t_sat_clone.index(min(t_sat_clone))] = max(t_sat_clone) + 100
-    sat_second = [t_sat_lookup[t_sat_clone.index(min(t_sat_clone))], min(t_sat_clone)]
-    t_sat_clone[t_sat_clone.index(min(t_sat_clone))] = max(t_sat_clone) + 100
-    sat_third = [t_sat_lookup[t_sat_clone.index(min(t_sat_clone))], min(t_sat_clone)]
+        if external_torque[i] != 0:
+            t_sat[i] = (RW_RPM * np.pi/30) * RW_inertia / abs(external_torque[i])
 
     time_scale = max(t_sat)/(t_length - unstable_t_length)
     t_output = np.linspace(0, t_length, int(frequency*(t_length)))
     RPM_output = [[0],[0],[0]]
-    y_output = [[],[],[],[],[],[],[]]
     saturation_output = [[],[],[]]
 
     for i in range(3):
-        sat_func = saturation_function(t_output*time_scale, t_sat[i], RW_RPM)
+        sat_func = saturation_function(t_output*time_scale, t_sat[i], RW_RPM, external_torque[i])
         RPM_output[i] = sat_func[0]
         saturation_output[i] = sat_func[1]
-
-    # start_phase_1 = 0
-    # while t_output[start_phase_1] <= sat_first[1]/time_scale:
-    #     y_output = np.concatenate([y_output, [[0],[0],[0],[1],[0],[0],[0]]], axis=1)
-    #     start_phase_1 += 1
-    # end_phase_1 = start_phase_1
-    # while t_output[end_phase_1] <= sat_second[1]/time_scale:
-    #     end_phase_1 += 1
-    # end_phase_2 = end_phase_1
-    # while t_output[end_phase_2] <= sat_third[1]/time_scale:
-    #     end_phase_2 += 1
-
-    # external_torque_sat = [0,0,0]
-    # if sat_first[0] == 'x':
-    #     external_torque_sat[0] = external_torque[0]
-    # elif sat_first[0] == 'y':
-    #     external_torque_sat[1] = external_torque[1]
-    # else:
-    #     external_torque_sat[2] = external_torque[2]
-    # solution_1 = integrate(y_output[:, -1], inertia, external_torque_sat, [sat_first[1], sat_second[1]], 1e-2, 1e-5)
-    # y_output = np.concatenate([y_output, solution_1.sol(t_output[start_phase_1:end_phase_1] * time_scale)], axis=1)
-    # if sat_second[0] == 'x':
-    #         external_torque_sat[0] = external_torque[0]
-    # elif sat_second[0] == 'y':
-    #     external_torque_sat[1] = external_torque[1]
-    # else:
-    #     external_torque_sat[2] = external_torque[2]
-    # solution_2 = integrate(y_output[:, -1], inertia, external_torque_sat, [sat_second[1], sat_third[1]], 1e-2, 1e-5)
-    # y_output = np.concatenate([y_output, solution_2.sol(t_output[end_phase_1:end_phase_2] * time_scale)], axis=1)
-    # solution_3 = integrate(y_output[:, -1], inertia, external_torque, [sat_third[1], sat_third[1] + unstable_t_length*time_scale], 1e-2, 1e-5)
-    # y_output = np.concatenate([y_output, solution_3.sol(t_output[end_phase_2:] * time_scale)], axis=1)
     
     return [time_scale, t_output, RPM_output, saturation_output]

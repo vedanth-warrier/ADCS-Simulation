@@ -594,12 +594,15 @@ function updateTimescalePill(scaleSeconds) {
 // compute one. The scene-status/saturation-pills split by timeframe is
 // unchanged from before, just no longer left fully hidden while idle.
 function setIdleStatusDefaults() {
-    pillTimescale.textContent = formatTimeScale(1);
-    pillTimescale.hidden = false;
-
     if (currentTimeframe === "seconds") {
+        // Seconds mode is always literally real-time, so a "1 sec is 1
+        // second" pill states nothing useful - left out entirely there
+        // rather than shown as a permanent no-op.
+        pillTimescale.hidden = true;
         updateStatusLabel("Constant Axis Tumble");
     } else {
+        pillTimescale.textContent = formatTimeScale(1);
+        pillTimescale.hidden = false;
         sceneStatusLabel.hidden = true;
     }
 }
@@ -682,6 +685,7 @@ const correctAttitudeBtn = document.getElementById("correct-attitude-btn");
 const resetBtn = document.getElementById("reset-btn");
 const simulationStatus = document.getElementById("simulation-status");
 const sceneStatusLabel = document.getElementById("scene-status");
+const sceneContainer = document.getElementById("scene-container");
 const saturationPillsContainer = document.getElementById("saturation-pills");
 const pillXSaturated = document.getElementById("pill-x-saturated");
 const pillYSaturated = document.getElementById("pill-y-saturated");
@@ -772,11 +776,100 @@ document.querySelectorAll('input[type="number"]').forEach((input) => {
     });
 });
 
-const timeframeWarning = document.getElementById("timeframe-warning");
+// Which of the 4 input sections are relevant to each timeframe - seconds mode
+// never reads disturbance_torque, adaptive mode's long_timeframe() doesn't
+// even accept inertia/mass/dimensions any more (orientation isn't modelled),
+// so those genuinely don't affect its output at all.
+const SECTION_IDS = ["section-angular-velocity", "section-satellite-properties", "section-reaction-wheels", "section-disturbance-torque"];
+const SECTION_VISIBILITY = {
+    seconds: ["section-angular-velocity", "section-satellite-properties", "section-reaction-wheels"],
+    adaptive: ["section-reaction-wheels", "section-disturbance-torque"],
+};
+
+const workspaceEl = document.querySelector(".workspace");
+const adaptivePillsRow = document.getElementById("adaptive-pills-row");
+
+// Drives everything that depends on which timeframe is selected: which input
+// sections are shown, whether the workspace is in "seconds" (3D + graphs) or
+// "adaptive" (graphs only, bigger) layout, and physically moving the
+// saturation/stability/timescale pills between overlaying the 3D view's
+// corners (seconds) and sitting in a plain row above the graphs (adaptive,
+// where there's no 3D view left to overlay).
+function applyTimeframeVisibility() {
+    const visibleIds = SECTION_VISIBILITY[currentTimeframe] || SECTION_VISIBILITY.seconds;
+    SECTION_IDS.forEach((id) => {
+        document.getElementById(id).hidden = !visibleIds.includes(id);
+    });
+
+    const isAdaptive = currentTimeframe !== "seconds";
+    workspaceEl.dataset.mode = isAdaptive ? "adaptive" : "seconds";
+
+    if (isAdaptive) {
+        adaptivePillsRow.appendChild(saturationPillsContainer);
+        adaptivePillsRow.appendChild(pillTimescale);
+        adaptivePillsRow.hidden = false;
+    } else {
+        sceneContainer.appendChild(saturationPillsContainer);
+        sceneContainer.appendChild(pillTimescale);
+        // Seconds mode is always 1:1, so the timescale pill carries no
+        // information there - kept out of the 3D view entirely.
+        pillTimescale.hidden = true;
+        adaptivePillsRow.hidden = true;
+    }
+
+    // Entering/leaving adaptive mode changes .graphs-row's own size (grid vs
+    // flex-row, scene-panel gone or not), so the square size needs
+    // recalculating right away rather than waiting on the next resize event.
+    resizeAdaptiveGraphSquares();
+}
+
+const graphsRowEl = document.querySelector(".graphs-row");
+
+// Sizes the 3 adaptive-mode graph canvases as squares that scale to fill
+// whichever of the row's available width/height is the tighter constraint (2
+// columns wide, 2 rows tall since Z sits centered under X/Y) - a fixed CSS
+// aspect-ratio alone can't do this for a 2-then-1 grid, since it has no way
+// to know the row's actual pixel budget in each direction.
+function resizeAdaptiveGraphSquares() {
+    if (currentTimeframe === "seconds") return;
+
+    const panels = graphsRowEl.querySelectorAll(".graph-panel");
+    if (panels.length === 0) return;
+
+    // clientWidth/clientHeight include the row's own padding, but the grid
+    // content is laid out inside the padding box - budgeting off the raw
+    // client size overstated the available space by the padding amount,
+    // which pushed the Z row's square past the panel's bottom edge.
+    const rowStyle = getComputedStyle(graphsRowEl);
+    const paddingX = parseFloat(rowStyle.paddingLeft) + parseFloat(rowStyle.paddingRight);
+    const paddingY = parseFloat(rowStyle.paddingTop) + parseFloat(rowStyle.paddingBottom);
+    const contentWidth = graphsRowEl.clientWidth - paddingX;
+    const contentHeight = graphsRowEl.clientHeight - paddingY;
+    if (contentWidth <= 0 || contentHeight <= 0) return;
+
+    const gapPx = parseFloat(rowStyle.gap) || 0;
+    // The title's own margin-bottom sits between it and the wrapper below,
+    // so measuring just the title element's height (not the gap after it)
+    // undercounted the space it takes up - use the actual title-top-to-
+    // wrap-top offset instead, which captures both.
+    const firstPanel = panels[0];
+    const titleOffset =
+        firstPanel.querySelector(".graph-canvas-wrap").getBoundingClientRect().top -
+        firstPanel.getBoundingClientRect().top;
+
+    const widthBudget = (contentWidth - gapPx) / 2;
+    const heightBudget = (contentHeight - gapPx) / 2 - titleOffset;
+    const squareSize = Math.max(60, Math.min(widthBudget, heightBudget));
+
+    graphsRowEl.style.setProperty("--adaptive-square-size", `${squareSize}px`);
+    Object.values(wheelSpeedCharts).forEach((chart) => chart.resize());
+}
+
+new ResizeObserver(resizeAdaptiveGraphSquares).observe(graphsRowEl);
+
 document.querySelectorAll('input[name="timeframe"]').forEach((radio) => {
     radio.addEventListener("change", (event) => {
         currentTimeframe = event.target.value;
-        timeframeWarning.hidden = currentTimeframe === "seconds";
         // Adaptive mode starts from a stationary attitude (see CLAUDE.md), so
         // switching to it drops whatever the live preview had spun up.
         if (currentTimeframe !== "seconds") satelliteMesh.quaternion.identity();
@@ -789,9 +882,28 @@ document.querySelectorAll('input[name="timeframe"]').forEach((radio) => {
         saturationPillsContainer.hidden = !isAdaptive;
         if (isAdaptive) resetSaturationPills();
         setIdleStatusDefaults();
+        applyTimeframeVisibility();
     });
+});
+
+const infoBtn = document.getElementById("info-btn");
+const infoModal = document.getElementById("info-modal");
+const infoModalClose = document.getElementById("info-modal-close");
+
+infoBtn?.addEventListener("click", () => {
+    infoModal.hidden = false;
+});
+infoModalClose?.addEventListener("click", () => {
+    infoModal.hidden = true;
+});
+infoModal?.addEventListener("click", (event) => {
+    if (event.target === infoModal) infoModal.hidden = true;
+});
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !infoModal.hidden) infoModal.hidden = true;
 });
 
 initScene();
 initWheelSpeedCharts();
 setIdleStatusDefaults();
+applyTimeframeVisibility();

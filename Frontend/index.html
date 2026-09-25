@@ -8,21 +8,162 @@
 </head>
 <body>
     <header>
-        <h1><span class="title-icon" aria-hidden="true">&#128752;</span> ADCS SIMULATOR</h1>
-        <p class="subtitle">
-            Simulate a tumbling satellite under an arbitrary-axis spin, then trigger a
-            three-axis reaction wheel correction. Configure the satellite and wheel
-            properties, watch the attitude respond in 3D, and track wheel speed and
-            saturation over time.
-        </p>
+        <div class="header-text">
+            <h1><span class="title-icon" aria-hidden="true">&#128752;</span> ADCS SIMULATOR</h1>
+            <p class="subtitle">
+                Simulate a tumbling satellite under an arbitrary-axis spin, then trigger a
+                three-axis reaction wheel correction. Configure the satellite and wheel
+                properties, watch the attitude respond in 3D, and track wheel speed and
+                saturation over time.
+            </p>
+        </div>
+        <button id="info-btn" type="button" aria-label="About this simulator" aria-haspopup="dialog">
+            <span class="info-btn-icon" aria-hidden="true">i</span>
+            <span>More Info</span>
+        </button>
     </header>
+
+    <div class="modal-overlay" id="info-modal" hidden>
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="info-modal-title">
+            <button id="info-modal-close" class="modal-close" type="button" aria-label="Close">&times;</button>
+            <div class="modal-body">
+                <h2 id="info-modal-title">How This Simulator Works</h2>
+                <p>
+                    This tool models a satellite as a rigid rectangular box, not a sphere,
+                    since a sphere has the same moment of inertia on every axis and would
+                    hide the tumbling behaviour a real, asymmetric spacecraft actually
+                    shows. Two deliberately different simulation regimes are available,
+                    switched with the Seconds / Adaptive pill above the inputs, and the
+                    right-hand side of the page changes shape depending on which one is
+                    selected.
+                </p>
+
+                <h3>Seconds mode</h3>
+                <p>
+                    What it models: three phases, played back in real time (one second of
+                    playback equals one simulated second). First, the satellite tumbles
+                    freely under whatever initial angular velocity you set, with no
+                    correction applied yet (a "torque-free precession" phase). If that
+                    velocity isn't aligned with a single body axis, this produces genuine
+                    wobbling precession, not simple single-axis spin, because the
+                    satellite's moment of inertia differs per axis. Second, a
+                    proportional-derivative (PD) controller commands the reaction wheels
+                    to null out both the orientation error and the angular velocity,
+                    visibly correcting the tumble. Third, the satellite holds its
+                    corrected attitude.
+                </p>
+                <p><strong>How the inputs affect it:</strong></p>
+                <ul>
+                    <li><strong>Initial Angular Velocity (X/Y/Z, rad/s):</strong> the
+                    starting spin rate about each body axis. A value on a single axis
+                    produces simple spin; a combination across two or more axes produces
+                    the more complex, chaotic-looking precession this simulator is built
+                    to demonstrate.</li>
+                    <li><strong>Satellite Properties (mass, dimensions):</strong> sets the
+                    moment of inertia per axis from the standard rectangular-prism
+                    formula. Different dimensions per axis give different moments of
+                    inertia, which is what makes multi-axis tumbling genuinely couple
+                    between axes, via Euler's rigid body equations, rather than each axis
+                    behaving independently.</li>
+                    <li><strong>Reaction Wheels (mass, radius, max RPM, max spin-up
+                    rate):</strong> one shared specification applied identically to all
+                    three orthogonal wheels. Wheel mass and radius set the wheel's own
+                    moment of inertia, which determines how much RPM change is needed to
+                    produce a given correction torque. Max RPM is the wheel's momentum
+                    storage ceiling: once reached, that axis is saturated and can no
+                    longer supply correction torque. Max spin-up rate caps how quickly
+                    the wheel's speed, and therefore the torque it can deliver, can
+                    change.</li>
+                </ul>
+                <p>
+                    What you'll see: the satellite animates in 3D through its full
+                    trajectory, the three RPM graphs show each wheel's speed over time,
+                    and a status label reports which phase is active (red "Torque-Free
+                    Precession", yellow "Applying Correction", green "Stability
+                    Achieved", or red "Saturated" if a wheel maxed out before the
+                    correction finished).
+                </p>
+                <p>
+                    Limitations: the correction is capped at 100 simulated seconds, if
+                    the controller hasn't converged by then, the run ends anyway.
+                    Disturbance torque is not modelled in this timeframe at all, it is
+                    built as a fast, isolated tumble-and-correct demonstration.
+                </p>
+
+                <h3>Adaptive mode</h3>
+                <p>
+                    What it models: the opposite regime. The satellite starts perfectly
+                    stable (any initial tumble is assumed to have already been corrected
+                    too quickly to be worth showing at this timescale), and a constant
+                    external disturbance torque acts on it continuously. The reaction
+                    wheels absorb this torque by building up momentum until they
+                    saturate, one axis at a time, and once an axis saturates it can no
+                    longer counter the disturbance on that axis.
+                </p>
+                <p><strong>How the inputs affect it:</strong></p>
+                <ul>
+                    <li><strong>Reaction Wheels:</strong> the same shared specification as
+                    seconds mode. Here it directly sets how much momentum each wheel can
+                    absorb before saturating (mass, radius, max RPM); a larger wheel or
+                    higher max RPM takes longer to saturate under the same torque.</li>
+                    <li><strong>Disturbance Torque (magnitude and direction):</strong> the
+                    constant torque vector. Magnitude is entered in scientific notation
+                    (a mantissa from 0 to 10 and a power-of-ten exponent), since
+                    realistic disturbance torques span many orders of magnitude. The
+                    direction vector's relative component sizes determine how the
+                    torque splits across the three axes: an axis with a larger
+                    component saturates faster than one with a smaller component, even
+                    under the same overall magnitude.</li>
+                </ul>
+                <p>
+                    What you'll see: three RPM graphs, one per wheel, each ramping from 0
+                    toward its max RPM (in whichever direction that axis's torque
+                    points) until it saturates and flattens out. Saturation and
+                    stability pills report each axis's current state (grey means not yet
+                    saturated, orange means saturated) and overall stability (green
+                    "Satellite Stable" while all three wheels are still countering the
+                    disturbance, red "Satellite Unstable" the moment any one of them
+                    saturates). A timescale pill reports the real-world time one second
+                    of playback represents, since saturation can genuinely take anywhere
+                    from seconds to months of real time depending on the inputs, so the
+                    whole run is always compressed to play back over a fixed window
+                    regardless of how long it actually took.
+                </p>
+                <p>
+                    Limitations: 3D orientation is not modelled in this mode at all. Once
+                    a wheel saturates, the resulting tumble happens far too fast,
+                    potentially hundreds of thousands of rotations before the run ends,
+                    to be meaningfully visible once compressed into the fixed playback
+                    window, so it is left out rather than shown incorrectly. Satellite
+                    mass and dimensions have no effect on this mode's output, since
+                    without orientation tracking there is no moment-of-inertia-dependent
+                    dynamics left to compute here, only the reaction wheels and the
+                    disturbance torque matter.
+                </p>
+            </div>
+        </div>
+    </div>
 
     <main>
         <aside id="controls">
             <div class="controls-scroll">
-                <section class="panel-section">
+                <section class="panel-section" id="section-timeframe">
+                    <h2>Timeframe</h2>
+                    <div class="radio-row">
+                        <label class="radio-label"><input type="radio" name="timeframe" value="seconds" checked> Seconds</label>
+                        <label class="radio-label"><input type="radio" name="timeframe" value="adaptive"> Adaptive</label>
+                    </div>
+                    <p class="section-hint">
+                        Seconds models a live tumble and the reaction wheel correction in
+                        real time. Adaptive assumes the satellite starts stable and applies
+                        a constant disturbance torque, rescaled to a fixed playback window
+                        since reaching saturation can take anywhere from seconds to months.
+                    </p>
+                </section>
+
+                <section class="panel-section" id="section-angular-velocity">
                     <h2>Initial Angular Velocity (rad/s)</h2>
-                    <p class="section-hint">Applies in seconds mode only. Minutes/hours mode starts from a stationary attitude.</p>
+                    <p class="section-hint">Applies in seconds mode only. Adaptive mode starts from a stationary attitude.</p>
                     <div class="triplet">
                         <div class="field">
                             <label for="omega-x">X</label>
@@ -51,7 +192,7 @@
                     </div>
                 </section>
 
-                <section class="panel-section">
+                <section class="panel-section" id="section-satellite-properties">
                     <h2>Satellite Properties</h2>
                     <p class="section-hint">Modelled as a rectangular prism, hence differing moments of inertia per axes.</p>
                     <div class="field">
@@ -91,7 +232,7 @@
                     </div>
                 </section>
 
-                <section class="panel-section">
+                <section class="panel-section" id="section-reaction-wheels">
                     <h2>Reaction Wheels</h2>
                     <p class="section-hint">One shared set of properties, applied to all three orthogonal wheels (assumed identical).</p>
 
@@ -132,9 +273,9 @@
                     </div>
                 </section>
 
-                <section class="panel-section">
+                <section class="panel-section" id="section-disturbance-torque">
                     <h2>Disturbance Torque</h2>
-                    <p class="section-hint">Simplified stand-in for combined solar pressure, drag and gravity-gradient effects. Active in minutes/hours mode only.</p>
+                    <p class="section-hint">Simplified stand-in for combined solar pressure, drag and gravity-gradient effects. Adaptive mode only.</p>
                     <div class="field">
                         <label for="disturbance-magnitude-mantissa">Magnitude (N&middot;m)</label>
                         <div class="scientific-input">
@@ -179,20 +320,6 @@
                         </div>
                     </div>
                 </section>
-
-                <section class="panel-section">
-                    <h2>Timeframe</h2>
-                    <div class="radio-row">
-                        <label class="radio-label"><input type="radio" name="timeframe" value="seconds" checked> Seconds</label>
-                        <label class="radio-label"><input type="radio" name="timeframe" value="adaptive"> Adaptive</label>
-                    </div>
-                    <p class="section-hint" id="timeframe-warning" hidden>
-                        In adaptive mode the satellite starts stationary and the disturbance torque
-                        is active. Initial tumble is not modelled at this timescale, it is corrected
-                        too fast to notice. Whatever timespan the correction actually takes is
-                        rescaled to play back over a fixed real-time window, shown below the 3D view.
-                    </p>
-                </section>
             </div>
 
             <div class="controls-footer">
@@ -230,18 +357,29 @@
                 </div>
             </section>
 
+            <!-- Adaptive mode only: the saturation/stability/timescale pills get moved
+            here (out of #scene-container) by script.js when adaptive mode is active,
+            since the 3D view they normally overlay is hidden in that mode. -->
+            <div class="adaptive-pills-row" id="adaptive-pills-row" hidden></div>
+
             <section class="graphs-row">
                 <div class="panel graph-panel">
                     <h2 class="panel-title">X Wheel Speed (RPM)</h2>
-                    <canvas id="graph-wheel-x"></canvas>
+                    <div class="graph-canvas-wrap">
+                        <canvas id="graph-wheel-x"></canvas>
+                    </div>
                 </div>
                 <div class="panel graph-panel">
                     <h2 class="panel-title">Y Wheel Speed (RPM)</h2>
-                    <canvas id="graph-wheel-y"></canvas>
+                    <div class="graph-canvas-wrap">
+                        <canvas id="graph-wheel-y"></canvas>
+                    </div>
                 </div>
                 <div class="panel graph-panel">
                     <h2 class="panel-title">Z Wheel Speed (RPM)</h2>
-                    <canvas id="graph-wheel-z"></canvas>
+                    <div class="graph-canvas-wrap">
+                        <canvas id="graph-wheel-z"></canvas>
+                    </div>
                 </div>
             </section>
         </div>

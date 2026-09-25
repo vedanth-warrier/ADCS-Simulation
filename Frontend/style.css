@@ -55,8 +55,54 @@ body::before {
 
 header {
     flex: 0 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
     padding: clamp(0.75rem, 2vh, 1.25rem) clamp(1rem, 2vw, 1.75rem) clamp(0.5rem, 1.5vh, 0.9rem);
     border-bottom: 1px solid var(--panel-border);
+}
+
+.header-text {
+    min-width: 0;
+}
+
+#info-btn {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 999px;
+    border: none;
+    background-image: var(--gradient-accent);
+    color: #06111c;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 0 18px rgba(139, 92, 246, 0.3);
+    transition: filter 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+#info-btn:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 0 22px rgba(139, 92, 246, 0.45);
+    transform: translateY(-1px);
+}
+
+.info-btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: rgba(6, 17, 28, 0.25);
+    font-style: italic;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.85rem;
+    line-height: 1;
 }
 
 header h1 {
@@ -84,6 +130,113 @@ header h1 {
     width: 100%;
     font-size: clamp(1.1rem, 1.1vw, 0.85rem);
     color: var(--text-muted);
+}
+
+/* Info modal */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1rem, 4vw, 3rem);
+    background: rgba(5, 7, 11, 0.72);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-overlay[hidden] {
+    display: none;
+}
+
+.modal-content {
+    position: relative;
+    width: min(720px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background-image: linear-gradient(var(--sidebar-bg), var(--sidebar-bg)), var(--gradient-accent-muted);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+}
+
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: var(--panel-border);
+    border-radius: 4px;
+}
+
+.modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid var(--input-border);
+    background: var(--input-btn-bg);
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.modal-close:hover {
+    background: var(--panel-border);
+    color: var(--text);
+}
+
+.modal-body h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    padding-right: 2rem;
+    background-image: var(--gradient-accent);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    width: fit-content;
+}
+
+.modal-body h3 {
+    font-size: 1.02rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 1.5rem 0 0.5rem;
+    color: var(--accent);
+}
+
+.modal-body p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.modal-body strong {
+    color: var(--text);
+}
+
+.modal-body ul {
+    margin: 0 0 0.75rem 1.1rem;
+    padding: 0;
+}
+
+.modal-body li {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.6rem;
 }
 
 main {
@@ -120,7 +273,11 @@ main {
     padding: clamp(0.75rem, 1.5vh, 1rem);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    /* A fixed gap instead of space-between: that used to spread sections
+    across the full sidebar height, which looked fine with all 5 sections
+    visible but balloons into huge, inconsistent-looking gaps now that each
+    timeframe only shows 3 of them. */
+    gap: clamp(1.5rem, 3.75vh, 2.625rem);
 }
 
 .controls-scroll::-webkit-scrollbar {
@@ -555,13 +712,117 @@ reads as standard scientific notation with no label needed. */
     min-width: 0;
 }
 
-.graph-panel canvas {
+/* A dedicated wrapper, not the canvas itself, is what actually flex-fills
+the panel's remaining space (below the title) and what Chart.js's responsive
+mode measures - giving Chart.js a container with no sibling title inside it
+to get confused by is what keeps its own resize logic from fighting the flex
+layout and producing a non-square, slightly-too-short canvas. */
+.graph-canvas-wrap {
     flex: 1 1 auto;
-    width: 100%;
     min-height: 0;
+    position: relative;
+}
+
+.graph-panel canvas {
+    width: 100%;
+    height: 100%;
     background: var(--input-bg);
     border-radius: 6px;
     display: block;
+}
+
+/* Adaptive mode: no 3D view (nothing to render, orientation isn't modelled),
+so the graphs take over the freed space, moved out of their individual boxes
+and into one shared big box (the same visual treatment .panel already gives
+the 3D view), with the saturation/stability/timescale pills lined up above
+them instead of overlaid on a scene that no longer exists. */
+
+.workspace[data-mode="adaptive"] .scene-panel {
+    display: none;
+}
+
+.workspace[data-mode="adaptive"] .graphs-row {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    justify-content: center;
+    align-content: center;
+    gap: clamp(0.75rem, 1.5vw, 1.1rem);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 0.75rem;
+    background-image: linear-gradient(var(--panel-bg), var(--panel-bg)), var(--gradient-accent-muted);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+.workspace[data-mode="adaptive"] .graph-panel {
+    background: none;
+    background-image: none;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 0;
+    width: auto;
+    height: auto;
+}
+
+/* Explicit size on the wrapper, not the canvas: Chart.js's responsive mode
+measures this wrapper (which holds nothing but the canvas) and actively
+resizes the canvas to fill it, so setting the canvas's own width/height
+directly just gets overridden. Sized by script.js from the row's actual
+pixel budget (limited by whichever of width/height runs out first). */
+.workspace[data-mode="adaptive"] .graph-canvas-wrap {
+    flex: none;
+    width: var(--adaptive-square-size, 200px);
+    height: var(--adaptive-square-size, 200px);
+}
+
+/* X and Y sit in the grid's two columns on row 1; Z spans both columns on
+row 2 so it centers underneath instead of sitting flush left. */
+.workspace[data-mode="adaptive"] .graph-panel:nth-child(3) {
+    grid-column: 1 / -1;
+    justify-self: center;
+}
+
+.adaptive-pills-row {
+    display: none;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.adaptive-pills-row[hidden] {
+    display: none;
+}
+
+.workspace[data-mode="adaptive"] .adaptive-pills-row:not([hidden]) {
+    display: flex;
+}
+
+/* Overrides for when script.js moves the pills into #adaptive-pills-row: they
+normally overlay the 3D view's corners via absolute positioning, but here
+they sit in a plain row instead - the saturation/stability group on the left
+(X/Y/Z Saturated, then Satellite Stable/Unstable on its own line below that,
+.saturation-pills already stacks that way internally) and the timescale pill
+on the right, with no need to share a vertical position. */
+.adaptive-pills-row .saturation-pills {
+    position: static;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+
+.adaptive-pills-row #pill-timescale {
+    position: static;
+}
+
+.adaptive-pills-row .pill-badge {
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 0.55rem 1.15rem;
 }
 
 /* Small-viewport fallback: stack and allow scrolling rather than crushing content */
@@ -588,7 +849,7 @@ reads as standard scientific notation with no label needed. */
         flex: 0 0 auto;
     }
 
-    .graph-panel canvas {
+    .graph-canvas-wrap {
         min-height: 140px;
     }
 }

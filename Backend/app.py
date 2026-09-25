@@ -97,18 +97,9 @@ def simulate():
     else:
         torque = params['disturbance_torque']['magnitude']
         direction_vector = list(params['disturbance_torque']['direction'].values())
-        mass = params['satellite']['mass']
         reaction_wheel_params = params["reaction_wheels"]
-        dimensions = np.array([
-            params['satellite']['dimensions']['x'], 
-            params['satellite']['dimensions']['y'], 
-            params['satellite']['dimensions']['z']
-                ])
-        inertia = dynamics.moment_of_inertia_box(mass+3*reaction_wheel_params['mass'], dimensions)
 
-        time_scale, time, RPM, saturation = dynamics.long_timeframe(100, 5, torque, direction_vector, inertia, reaction_wheel_params, sample_frequency, frequency)
-        quarts = [list(row) for row in zip(y_values[0], y_values[1], y_values[2], y_values[3])]
-        final_quarts = [(i/np.linalg.norm(i)).tolist() for i in quarts]
+        time_scale, time, RPM, saturation = dynamics.long_timeframe(100, 5, torque, direction_vector, reaction_wheel_params, frequency)
 
         return jsonify({
             "time": time.tolist(),
