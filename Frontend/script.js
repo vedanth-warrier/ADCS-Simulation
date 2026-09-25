@@ -316,12 +316,20 @@ function createWheelSpeedChart(canvasId, color) {
                     // unevenly spaced (adaptive solver steps), so plotting
                     // them as category labels put a tick at every single
                     // value. A linear scale with an explicit stepSize (set
-                    // per-run in configureChartTimeAxis) draws clean ticks at
-                    // fixed intervals instead.
+                    // per-frame in updateWheelSpeedCharts) draws clean ticks
+                    // at fixed intervals instead.
                     type: "linear",
                     min: 0,
                     title: { display: true, text: "Time (s)", color: "#8b95a5", font: { size: 10 } },
-                    ticks: { color: "#8b95a5", font: { size: 9 } },
+                    ticks: {
+                        color: "#8b95a5",
+                        font: { size: 9 },
+                        // Always exactly one decimal place, even for whole
+                        // numbers (12 -> "12.0"), so label width/digit count
+                        // stays constant frame to frame instead of jittering
+                        // as ticks flip between "12" and "12.3"-style widths.
+                        callback: (value) => Number(value).toFixed(1),
+                    },
                     grid: { color: "rgba(139, 149, 165, 0.12)" },
                 },
                 y: {
@@ -356,28 +364,49 @@ function niceTimeStep(finalTime) {
     return 10;
 }
 
-// Fixes each chart's x-axis range/spacing to the full run up front (rather
-// than autoscaling as data streams in during playback), so the grid stays
-// stable instead of jumping around while the graph fills in.
-function configureChartTimeAxis(finalTime) {
-    const stepSize = niceTimeStep(finalTime);
+// Each backend timeframe branch now scales its own returned `time` array
+// Adaptive mode rescales whatever timespan the correction actually took to
+// fit a fixed real-time playback window (see the timescale pill below), so
+// its `time` array is already in real seconds too - same axis unit as
+// "seconds" mode, not simulated minutes/hours like it used to be.
+const TIME_AXIS_LABELS = {
+    seconds: "Time (s)",
+    adaptive: "Time (s)",
+};
+
+// Sets each chart's x-axis title to match the current run's actual time
+// unit. Called once per run, range/spacing themselves are handled dynamically
+// in updateWheelSpeedCharts() below.
+function configureChartTimeAxisLabel() {
+    const label = TIME_AXIS_LABELS[currentTimeframe] || "Time";
     ["x", "y", "z"].forEach((axis) => {
-        const scale = wheelSpeedCharts[axis].options.scales.x;
-        scale.max = finalTime;
-        scale.ticks.stepSize = stepSize;
+        const chart = wheelSpeedCharts[axis];
+        chart.options.scales.x.title.text = label;
+        chart.update();
     });
 }
 
 // { time: [t0, t1, ...], rpm: { x: [...], y: [...], z: [...] } }, all arrays
 // the same length. uptoIndex draws only the data up to that sample (used to
 // reveal the graph in step with the 3D playback rather than dumping the
-// whole trace at once); omit it to plot everything.
+// whole trace at once); omit it to plot everything. The x-axis is rescaled
+// to the latest plotted time on every call (not fixed to the eventual final
+// time), so the visible curve always fills the full chart width instead of
+// being a sliver on the left of a mostly-empty axis early in playback.
 function updateWheelSpeedCharts(simulationData, uptoIndex) {
     const { time, rpm } = simulationData;
     const end = uptoIndex === undefined ? time.length : uptoIndex + 1;
+    // Rounded (up, so the last point never sits exactly on the boundary) to
+    // a clean 1-decimal value rather than the raw solver time, which has ~15
+    // significant digits that change on every single frame - left unrounded,
+    // that noise in the axis's own boundary made Chart.js's tick layout
+    // recompute slightly differently frame to frame, visible as a jitter.
+    const currentMax = Math.ceil(time[end - 1] * 10) / 10;
     ["x", "y", "z"].forEach((axis) => {
         const chart = wheelSpeedCharts[axis];
         chart.data.datasets[0].data = time.slice(0, end).map((t, i) => ({ x: t, y: rpm[axis][i] }));
+        chart.options.scales.x.max = currentMax;
+        chart.options.scales.x.ticks.stepSize = niceTimeStep(currentMax);
         chart.update();
     });
 }
@@ -488,6 +517,9 @@ const STATUS_COLORS = {
     "Applying Correction": "#f5c518",
     "Stability Achieved": "#4ade80",
     "Saturated": "#ff6b6b",
+    // Idle default shown in "seconds" mode before Correct Attitude has ever
+    // been clicked, not something the backend ever sends.
+    "Constant Axis Tumble": "#ff6b6b",
 };
 
 function updateStatusLabel(text) {
@@ -495,6 +527,81 @@ function updateStatusLabel(text) {
     sceneStatusLabel.textContent = text;
     sceneStatusLabel.style.color = STATUS_COLORS[text] || "";
     sceneStatusLabel.hidden = false;
+}
+
+// Minutes/hours mode has no "text" field at all - saturation there comes
+// back as a per-timestep boolean array per axis instead, driving these 4
+// pills (3 per-axis + 1 overall stability) rather than the single text pill
+// "seconds" mode uses.
+const SATURATION_PILL_DEFAULT_COLOR = "#8b95a5";
+const SATURATION_PILL_SATURATED_COLOR = "#f5a623";
+
+function setSaturationPill(pillEl, isSaturated) {
+    pillEl.style.color = isSaturated ? SATURATION_PILL_SATURATED_COLOR : SATURATION_PILL_DEFAULT_COLOR;
+}
+
+function resetSaturationPills() {
+    setSaturationPill(pillXSaturated, false);
+    setSaturationPill(pillYSaturated, false);
+    setSaturationPill(pillZSaturated, false);
+    pillStability.textContent = "Satellite Stable";
+    pillStability.style.color = SATURATION_PILL_DEFAULT_COLOR;
+}
+
+function updateSaturationPills(saturated, index) {
+    const xSat = !!saturated.x[index];
+    const ySat = !!saturated.y[index];
+    const zSat = !!saturated.z[index];
+    setSaturationPill(pillXSaturated, xSat);
+    setSaturationPill(pillYSaturated, ySat);
+    setSaturationPill(pillZSaturated, zSat);
+
+    const anySaturated = xSat || ySat || zSat;
+    pillStability.textContent = anySaturated ? "Satellite Unstable" : "Satellite Stable";
+    pillStability.style.color = anySaturated ? "#ff6b6b" : "#4ade80";
+}
+
+// "1 sec is 1 day 12 hours 15 minutes and 34 seconds" - scaleSeconds is how
+// many simulated seconds one second of adaptive-mode playback represents.
+function formatTimeScale(scaleSeconds) {
+    let remaining = Math.round(scaleSeconds);
+    const days = Math.floor(remaining / 86400);
+    remaining -= days * 86400;
+    const hours = Math.floor(remaining / 3600);
+    remaining -= hours * 3600;
+    const minutes = Math.floor(remaining / 60);
+    remaining -= minutes * 60;
+    const seconds = remaining;
+
+    const parts = [];
+    if (days) parts.push(`${days} day${days === 1 ? "" : "s"}`);
+    if (hours) parts.push(`${hours} hour${hours === 1 ? "" : "s"}`);
+    if (minutes) parts.push(`${minutes} minute${minutes === 1 ? "" : "s"}`);
+    if (seconds || parts.length === 0) parts.push(`${seconds} second${seconds === 1 ? "" : "s"}`);
+
+    const joined = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(" ")} and ${parts[parts.length - 1]}`;
+    return `1 sec is ${joined}`;
+}
+
+function updateTimescalePill(scaleSeconds) {
+    pillTimescale.textContent = formatTimeScale(scaleSeconds);
+    pillTimescale.hidden = false;
+}
+
+// Idle state shown before Correct Attitude has ever been clicked (and
+// restored by Reset): "seconds" mode is always literally real-time, so its
+// timescale pill permanently reads 1:1 rather than needing a real run to
+// compute one. The scene-status/saturation-pills split by timeframe is
+// unchanged from before, just no longer left fully hidden while idle.
+function setIdleStatusDefaults() {
+    pillTimescale.textContent = formatTimeScale(1);
+    pillTimescale.hidden = false;
+
+    if (currentTimeframe === "seconds") {
+        updateStatusLabel("Constant Axis Tumble");
+    } else {
+        sceneStatusLabel.hidden = true;
+    }
 }
 
 function updatePlayback() {
@@ -506,13 +613,18 @@ function updatePlayback() {
     const simTime = playback.simStart + progress * (playback.simEnd - playback.simStart);
     const index = sampleIndexAtSimTime(simTime);
 
-    satelliteMesh.quaternion.copy(quaternionAtSimTime(simTime));
+    // quaternions/texts are only present once the backend actually returns
+    // real per-timestep data for them (some in-progress branches return a
+    // placeholder while that part isn't implemented yet) - skip rather than
+    // crash when they're not there, the RPM graphs don't depend on them.
+    if (playback.quaternions) satelliteMesh.quaternion.copy(quaternionAtSimTime(simTime));
     if (playback.texts) updateStatusLabel(playback.texts[index]);
     // Reveals the RPM graphs in step with the 3D playback, using the same
     // simTime/index the orientation and status label are driven from, rather
     // than dumping the whole trace onto the chart the instant the response
     // arrives.
     if (playback.rpm) updateWheelSpeedCharts({ time: playback.times, rpm: playback.rpm }, index);
+    if (playback.saturated) updateSaturationPills(playback.saturated, index);
 
     if (progress >= 1) {
         // Correction has finished: hold this attitude rather than resuming
@@ -524,8 +636,8 @@ function updatePlayback() {
 }
 
 function animateSatellite(stateTimeSeries) {
-    const { time, orientation, text, rpm } = stateTimeSeries;
-    if (!time || !orientation || time.length === 0) {
+    const { time, orientation, text, rpm, saturated, time_scale } = stateTimeSeries;
+    if (!time || !rpm || time.length === 0) {
         // Nothing to play back, don't leave the satellite frozen forever.
         liveTumbleEnabled = true;
         return;
@@ -535,12 +647,29 @@ function animateSatellite(stateTimeSeries) {
     const simEnd = time[time.length - 1];
 
     resetWheelSpeedCharts();
-    configureChartTimeAxis(simEnd);
+    configureChartTimeAxisLabel();
+    if (currentTimeframe !== "seconds") {
+        resetSaturationPills();
+        // time_scale is a single factor for the whole run (unlike the
+        // per-timestep saturation pills), so it's set once here rather than
+        // updated every frame in updatePlayback().
+        if (typeof time_scale === "number") updateTimescalePill(time_scale);
+    }
 
     playback = {
         times: time,
-        quaternions: orientation.map(([x, y, z, w]) => new THREE.Quaternion(x, y, z, w)),
-        texts: text,
+        // Only built when the backend sent real per-timestep quaternions/text
+        // (still a placeholder string on some in-progress branches) - the RPM
+        // graphs work fine without either, so this degrades instead of
+        // crashing when only part of the response is implemented so far.
+        quaternions: Array.isArray(orientation)
+            ? orientation.map(([x, y, z, w]) => new THREE.Quaternion(x, y, z, w))
+            : null,
+        texts: Array.isArray(text) ? text : null,
+        // "seconds" mode sends a single final boolean per axis (used
+        // elsewhere), not the per-timestep array these top-left pills need -
+        // only adaptive mode returns that shape.
+        saturated: (currentTimeframe !== "seconds" && saturated && Array.isArray(saturated.x)) ? saturated : null,
         rpm,
         simStart,
         simEnd,
@@ -553,6 +682,12 @@ const correctAttitudeBtn = document.getElementById("correct-attitude-btn");
 const resetBtn = document.getElementById("reset-btn");
 const simulationStatus = document.getElementById("simulation-status");
 const sceneStatusLabel = document.getElementById("scene-status");
+const saturationPillsContainer = document.getElementById("saturation-pills");
+const pillXSaturated = document.getElementById("pill-x-saturated");
+const pillYSaturated = document.getElementById("pill-y-saturated");
+const pillZSaturated = document.getElementById("pill-z-saturated");
+const pillStability = document.getElementById("pill-stability");
+const pillTimescale = document.getElementById("pill-timescale");
 
 // Resets the simulation, not the page: inputs are left exactly as the user
 // set them, only the 3D attitude, RPM graphs and status indicators go back
@@ -562,7 +697,8 @@ function resetSimulationState() {
     liveTumbleEnabled = true;
     satelliteMesh.quaternion.identity();
     resetWheelSpeedCharts();
-    sceneStatusLabel.hidden = true;
+    if (currentTimeframe !== "seconds") resetSaturationPills();
+    setIdleStatusDefaults();
     simulationStatus.hidden = true;
     simulationStatus.classList.remove("status-error");
     correctAttitudeBtn.disabled = false;
@@ -641,11 +777,21 @@ document.querySelectorAll('input[name="timeframe"]').forEach((radio) => {
     radio.addEventListener("change", (event) => {
         currentTimeframe = event.target.value;
         timeframeWarning.hidden = currentTimeframe === "seconds";
-        // Hours/days start from a stationary attitude (see CLAUDE.md), so
-        // switching to one drops whatever the live preview had spun up.
+        // Adaptive mode starts from a stationary attitude (see CLAUDE.md), so
+        // switching to it drops whatever the live preview had spun up.
         if (currentTimeframe !== "seconds") satelliteMesh.quaternion.identity();
+        configureChartTimeAxisLabel();
+
+        // The 4 saturation/stability pills replace the single status pill in
+        // adaptive mode (which has no "text" field at all), greyed out the
+        // moment the mode is selected, before any run has happened.
+        const isAdaptive = currentTimeframe !== "seconds";
+        saturationPillsContainer.hidden = !isAdaptive;
+        if (isAdaptive) resetSaturationPills();
+        setIdleStatusDefaults();
     });
 });
 
 initScene();
 initWheelSpeedCharts();
+setIdleStatusDefaults();

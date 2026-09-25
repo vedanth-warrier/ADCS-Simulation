@@ -22,7 +22,7 @@
             <div class="controls-scroll">
                 <section class="panel-section">
                     <h2>Initial Angular Velocity (rad/s)</h2>
-                    <p class="section-hint">Applies in seconds mode only. Hours/days mode starts from a stationary attitude.</p>
+                    <p class="section-hint">Applies in seconds mode only. Minutes/hours mode starts from a stationary attitude.</p>
                     <div class="triplet">
                         <div class="field">
                             <label for="omega-x">X</label>
@@ -134,7 +134,7 @@
 
                 <section class="panel-section">
                     <h2>Disturbance Torque</h2>
-                    <p class="section-hint">Simplified stand-in for combined solar pressure, drag and gravity-gradient effects. Active in hours/days mode only.</p>
+                    <p class="section-hint">Simplified stand-in for combined solar pressure, drag and gravity-gradient effects. Active in minutes/hours mode only.</p>
                     <div class="field">
                         <label for="disturbance-magnitude-mantissa">Magnitude (N&middot;m)</label>
                         <div class="scientific-input">
@@ -184,13 +184,13 @@
                     <h2>Timeframe</h2>
                     <div class="radio-row">
                         <label class="radio-label"><input type="radio" name="timeframe" value="seconds" checked> Seconds</label>
-                        <label class="radio-label"><input type="radio" name="timeframe" value="hours"> Hours</label>
-                        <label class="radio-label"><input type="radio" name="timeframe" value="days"> Days</label>
+                        <label class="radio-label"><input type="radio" name="timeframe" value="adaptive"> Adaptive</label>
                     </div>
                     <p class="section-hint" id="timeframe-warning" hidden>
-                        In hours/days mode the satellite starts stationary and the disturbance
-                        torque is active. Initial tumble is not modelled at this timescale,
-                        it is corrected too fast to notice.
+                        In adaptive mode the satellite starts stationary and the disturbance torque
+                        is active. Initial tumble is not modelled at this timescale, it is corrected
+                        too fast to notice. Whatever timespan the correction actually takes is
+                        rescaled to play back over a fixed real-time window, shown below the 3D view.
                     </p>
                 </section>
             </div>
@@ -212,11 +212,20 @@
                 <h2 class="panel-title">Satellite Attitude (3D)</h2>
                 <div id="scene-container">
                     <p class="scene-status" id="scene-status" hidden></p>
+                    <div class="saturation-pills" id="saturation-pills" hidden>
+                        <div class="saturation-pills-row">
+                            <p class="pill-badge" id="pill-x-saturated">X Saturated</p>
+                            <p class="pill-badge" id="pill-y-saturated">Y Saturated</p>
+                            <p class="pill-badge" id="pill-z-saturated">Z Saturated</p>
+                        </div>
+                        <p class="pill-badge" id="pill-stability">Satellite Stable</p>
+                    </div>
                     <div class="scene-hints">
                         <p class="scene-hint">Drag to rotate</p>
                         <p class="scene-hint">Shift drag to roll</p>
                         <p class="scene-hint">Scroll to zoom</p>
                     </div>
+                    <p class="pill-badge" id="pill-timescale" hidden></p>
                     <div id="axis-gizmo" aria-hidden="true"></div>
                 </div>
             </section>

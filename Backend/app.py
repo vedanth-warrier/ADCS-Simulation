@@ -21,79 +21,109 @@ def simulate():
     params = request.get_json()
     frequency = 60
     sample_frequency = 120
-    t_precession_end = 5
-    stability_end = 5
-    correction_max_time = 100
+    if params['timeframe'] == 'seconds':
+        t_precession_end = 5
+        stability_end = 5
+        correction_max_time = 100
 
-    state_initial = np.array([
-        params['current_orientation'][0], params['current_orientation'][1], params['current_orientation'][2], params['current_orientation'][3],
-        params['initial_angular_velocity']['x'], params['initial_angular_velocity']['y'], params['initial_angular_velocity']['z']
-            ])
+        state_initial = np.array([
+            params['current_orientation'][0], params['current_orientation'][1], params['current_orientation'][2], params['current_orientation'][3],
+            params['initial_angular_velocity']['x'], params['initial_angular_velocity']['y'], params['initial_angular_velocity']['z']
+                ])
 
-    mass = params['satellite']['mass']
+        mass = params['satellite']['mass']
 
-    dimensions = np.array([
-        params['satellite']['dimensions']['x'], 
-        params['satellite']['dimensions']['y'], 
-        params['satellite']['dimensions']['z']
-            ])
+        dimensions = np.array([
+            params['satellite']['dimensions']['x'], 
+            params['satellite']['dimensions']['y'], 
+            params['satellite']['dimensions']['z']
+                ])
 
-    reaction_wheel_params = params["reaction_wheels"]
+        reaction_wheel_params = params["reaction_wheels"]
 
-    inertia = dynamics.moment_of_inertia_box(mass+3*reaction_wheel_params['mass'], dimensions)
+        inertia = dynamics.moment_of_inertia_box(mass+3*reaction_wheel_params['mass'], dimensions)
 
-    precession_solution = dynamics.integrate(state_initial, inertia, [0,0,0], [0, t_precession_end])
-    t_precession = np.linspace(0, t_precession_end, t_precession_end*frequency)
-    y_precession = precession_solution.sol(t_precession)
-    RPM_precession = [[0 for i in t_precession] for j in range(3)]
-    text_precession = ['Torque-Free Precession' for i in t_precession]
+        precession_solution = dynamics.integrate(state_initial, inertia, [0,0,0], [0, t_precession_end])
+        t_precession = np.linspace(0, t_precession_end, t_precession_end*frequency)
+        y_precession = precession_solution.sol(t_precession)
+        RPM_precession = [[0 for i in t_precession] for j in range(3)]
+        text_precession = ['Torque-Free Precession' for i in t_precession]
 
-    state_post_precession = y_precession[:, -1]
-    t_correction, y_correction, RPM_correction, saturated, ran = dynamics.correction(state_post_precession, reaction_wheel_params, inertia, correction_max_time, t_precession_end, sample_frequency, 1, 1)
-    text_correction = ['Applying Correction' for i in t_correction]
+        state_post_precession = y_precession[:, -1]
+        t_correction, y_correction, RPM_correction, saturated, ran = dynamics.correction(state_post_precession, reaction_wheel_params, inertia, correction_max_time, t_precession_end, sample_frequency, 1, 1)
+        text_correction = ['Applying Correction' for i in t_correction]
 
-    if ran:
-        state_post_correction = y_correction[:, -1]
-        time_post_correction = t_correction[-1]
+        if ran:
+            state_post_correction = y_correction[:, -1]
+            time_post_correction = t_correction[-1]
+        else:
+            state_post_correction = state_post_precession
+            time_post_correction = t_precession_end
+        stability_solution = dynamics.integrate(state_post_correction, inertia, [0,0,0], [time_post_correction, time_post_correction + stability_end])
+        t_stability = np.linspace(time_post_correction, time_post_correction + stability_end, stability_end*frequency)
+        y_stability = stability_solution.sol(t_stability)
+        if ran:
+            RPM_stability = [[RPM_correction[j][-1] for i in t_stability] for j in range(3)]
+        else:
+            RPM_stability = [[0 for i in t_stability] for j in range(3)]
+        if np.any(saturated):
+            text_stability = ['Saturated' for i in t_stability]
+        else:
+            text_stability = ['Stability Achieved' for i in t_stability]
+
+        time = np.concatenate([t_precession, t_correction, t_stability]).tolist()
+        y_values = np.concatenate([y_precession, y_correction, y_stability], axis=1).tolist()
+        RPM_values = np.concatenate([RPM_precession, RPM_correction, RPM_stability], axis=1).tolist()
+        text = np.concatenate([text_precession, text_correction, text_stability]).tolist()
+
+        quarts = [list(row) for row in zip(y_values[0], y_values[1], y_values[2], y_values[3])]
+        final_quarts = [(i/np.linalg.norm(i)).tolist() for i in quarts]
+        
+        return jsonify({
+            "time": time,
+            "orientation": final_quarts,
+            "rpm": {
+                "x": RPM_values[0],
+                "y": RPM_values[1],
+                "z": RPM_values[2],
+            },
+            "saturated": {
+                "x": saturated[0],
+                "y": saturated[1],
+                "z": saturated[2]
+            },
+            "text": text
+                })
     else:
-        state_post_correction = state_post_precession
-        time_post_correction = t_precession_end
-    stability_solution = dynamics.integrate(state_post_correction, inertia, [0,0,0], [time_post_correction, time_post_correction + stability_end])
-    t_stability = np.linspace(time_post_correction, time_post_correction + stability_end, stability_end*frequency)
-    y_stability = stability_solution.sol(t_stability)
-    if ran:
-        RPM_stability = [[RPM_correction[j][-1] for i in t_stability] for j in range(3)]
-    else:
-        RPM_stability = [[0 for i in t_stability] for j in range(3)]
-    if np.any(saturated):
-        text_stability = ['Saturated' for i in t_stability]
-    else:
-        text_stability = ['Stability Achieved' for i in t_stability]
+        torque = params['disturbance_torque']['magnitude']
+        direction_vector = list(params['disturbance_torque']['direction'].values())
+        mass = params['satellite']['mass']
+        reaction_wheel_params = params["reaction_wheels"]
+        dimensions = np.array([
+            params['satellite']['dimensions']['x'], 
+            params['satellite']['dimensions']['y'], 
+            params['satellite']['dimensions']['z']
+                ])
+        inertia = dynamics.moment_of_inertia_box(mass+3*reaction_wheel_params['mass'], dimensions)
 
-    time = np.concatenate([t_precession, t_correction, t_stability]).tolist()
-    y_values = np.concatenate([y_precession, y_correction, y_stability], axis=1).tolist()
-    RPM_values = np.concatenate([RPM_precession, RPM_correction, RPM_stability], axis=1).tolist()
-    text = np.concatenate([text_precession, text_correction, text_stability]).tolist()
+        time_scale, time, RPM, saturation = dynamics.long_timeframe(100, 5, torque, direction_vector, inertia, reaction_wheel_params, sample_frequency, frequency)
+        quarts = [list(row) for row in zip(y_values[0], y_values[1], y_values[2], y_values[3])]
+        final_quarts = [(i/np.linalg.norm(i)).tolist() for i in quarts]
 
-    quarts = [list(row) for row in zip(y_values[0], y_values[1], y_values[2], y_values[3])]
-    final_quarts = [(i/np.linalg.norm(i)).tolist() for i in quarts]
-    
-    return jsonify({
-        "time": time,
-        "orientation": final_quarts,
-        "rpm": {
-            "x": RPM_values[0],
-            "y": RPM_values[1],
-            "z": RPM_values[2],
-        },
-        "saturated": {
-            "x": saturated[0],
-            "y": saturated[1],
-            "z": saturated[2]
-        },
-        "text": text
-            })
-
+        return jsonify({
+            "time": time.tolist(),
+            "time_scale": time_scale,
+            "rpm": {
+                "x": RPM[0],
+                "y": RPM[1],
+                "z": RPM[2]
+            },
+            "saturated": {
+                "x": saturation[0],
+                "y": saturation[1],
+                "z": saturation[2]
+            }
+        })
 
 if __name__ == "__main__":
     # Not 5000: on macOS that port is usually held by the AirPlay Receiver
