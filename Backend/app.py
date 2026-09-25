@@ -3,6 +3,7 @@ from flask_cors import CORS
 import dynamics
 import numpy as np
 import scipy.interpolate as interpolate
+import os
 
 app = Flask(__name__)
 CORS(app)  # frontend and backend run on different origins, so this has to be open
@@ -174,4 +175,6 @@ def simulate():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    # gunicorn (used in production) never runs this block, debug defaults off
+    # so a live deploy doesn't accidentally expose Werkzeug's debugger
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1", port=5001)
