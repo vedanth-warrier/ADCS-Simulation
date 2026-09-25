@@ -470,7 +470,7 @@ function readUserInputs() {
 }
 
 async function runSimulation(params) {
-    const response = await fetch(`${BACKEND_URL}/simulate`, {
+    const response = await fetch(`${attitude-determination-and-control.onrender.com}/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
