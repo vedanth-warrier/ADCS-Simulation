@@ -1,10 +1,6 @@
 // ADCS Simulator frontend: Three.js scene, user inputs, backend calls.
 
-// TODO: update once the backend is deployed. Port 5001, not Flask's
-// default 5000: on macOS 5000 is usually held by the AirPlay Receiver
-// (ControlCenter), which "localhost" resolves to over IPv6 ahead of
-// Flask's IPv4-only default bind, so requests silently never reach Flask.
-const BACKEND_URL = "http://localhost:5001";
+const BACKEND_URL = "https://attitude-determination-and-control.onrender.com";
 
 let scene, camera, renderer, controls, satelliteMesh;
 let gizmoScene, gizmoCamera, gizmoRenderer;
@@ -133,7 +129,7 @@ function applySkinTexture(mesh) {
     // actually finished loading, so building clones and swapping in the
     // per-face materials happens in the onLoad callback, once there is
     // real pixel data to clone and upload rather than an empty placeholder.
-    new THREE.TextureLoader().load("../Images/Satellite-Skin.jpeg", (baseTexture) => {
+    new THREE.TextureLoader().load("Images/Satellite-Skin.jpeg", (baseTexture) => {
         baseTexture.encoding = THREE.sRGBEncoding;
 
         mesh.material = SKIN_FACES.map(({ col, row }) => {
@@ -470,7 +466,7 @@ function readUserInputs() {
 }
 
 async function runSimulation(params) {
-    const response = await fetch(`${attitude-determination-and-control.onrender.com}/simulate`, {
+    const response = await fetch(`${BACKEND_URL}/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),

@@ -48,7 +48,7 @@ body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background: url("../Images/Background.gif") center / cover no-repeat;
+    background: url("Images/Background.gif") center / cover no-repeat;
     opacity: 0.32;
     z-index: -1;
 }
