@@ -29,26 +29,24 @@
             <div class="modal-body">
                 <h2 id="info-modal-title">How This Simulator Works</h2>
                 <p>
-                    This tool models a satellite as a rigid rectangular box, not a sphere,
-                    since a sphere has the same moment of inertia on every axis and would
-                    hide the tumbling behaviour a real, asymmetric spacecraft actually
-                    shows. Two deliberately different simulation regimes are available,
-                    switched with the Seconds / Adaptive pill above the inputs, and the
-                    right-hand side of the page changes shape depending on which one is
-                    selected.
+                    This tool models a satellite as a rigid rectangular box to model the different
+                    moments of inertia per plane. Two different simulation regimes are available,
+                    switched with the Seconds / Adaptive pill above the inputs, and the right-hand 
+                    side of the page changes shape depending on which one is selected.
                 </p>
 
                 <h3>Seconds mode</h3>
                 <p>
-                    What it models: three phases, played back in real time (one second of
-                    playback equals one simulated second). First, the satellite tumbles
-                    freely under whatever initial angular velocity you set, with no
-                    correction applied yet (a "torque-free precession" phase). If that
-                    velocity isn't aligned with a single body axis, this produces genuine
-                    wobbling precession, not simple single-axis spin, because the
-                    satellite's moment of inertia differs per axis. Second, a
-                    proportional-derivative (PD) controller commands the reaction wheels
-                    to null out both the orientation error and the angular velocity,
+                    What it models: three phases, which are played back in real time (one second of
+                    playback equals one simulated second). Before the button is clicked the satellite
+                    tumbles around a constant axis according to the angular velocity inputted, this is 
+                    obviously unrealistic as it does not model torque free precession, but is simply a
+                    way to visualise the initial angular velocity inputted. When the button is clicked
+                    the phases begin. Firstly, the satellite tumbles freely under whatever initial 
+                    angular velocity you set, with no correction applied yet, however this is realistic 
+                    tumbling (torque free precession) as it uses euler equations for rigid bodies.
+                    Second, a proportional-derivative (PD) controller commands the reaction wheels
+                    to cancel out both the orientation error and the angular velocity,
                     visibly correcting the tumble. Third, the satellite holds its
                     corrected attitude.
                 </p>
@@ -58,12 +56,12 @@
                     starting spin rate about each body axis. A value on a single axis
                     produces simple spin; a combination across two or more axes produces
                     the more complex, chaotic-looking precession this simulator is built
-                    to demonstrate.</li>
+                    to demonstrate and correct.</li>
                     <li><strong>Satellite Properties (mass, dimensions):</strong> sets the
                     moment of inertia per axis from the standard rectangular-prism
                     formula. Different dimensions per axis give different moments of
-                    inertia, which is what makes multi-axis tumbling genuinely couple
-                    between axes, via Euler's rigid body equations, rather than each axis
+                    inertia, which is what makes multi-axis tumbling interesting,
+                    via Euler's rigid body equations, rather than each axis
                     behaving independently.</li>
                     <li><strong>Reaction Wheels (mass, radius, max RPM, max spin-up
                     rate):</strong> one shared specification applied identically to all
@@ -131,14 +129,13 @@
                 </p>
                 <p>
                     Limitations: 3D orientation is not modelled in this mode at all. Once
-                    a wheel saturates, the resulting tumble happens far too fast,
-                    potentially hundreds of thousands of rotations before the run ends,
-                    to be meaningfully visible once compressed into the fixed playback
-                    window, so it is left out rather than shown incorrectly. Satellite
-                    mass and dimensions have no effect on this mode's output, since
-                    without orientation tracking there is no moment-of-inertia-dependent
-                    dynamics left to compute here, only the reaction wheels and the
-                    disturbance torque matter.
+                    a wheel saturates, the resulting tumble happens far too fast according to
+                    the newly defined timescale, as potentially hundreds of thousands of 
+                    rotations can occur before the run ends, so it is left out rather than 
+                    shown incorrectly. Satellite mass and dimensions have no effect on this 
+                    mode's output, since without orientation tracking there is no 
+                    moment-of-inertia-dependent dynamics left to compute here, only the
+                    reaction wheels and the disturbance torque matter.
                 </p>
             </div>
         </div>
