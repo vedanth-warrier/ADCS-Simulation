@@ -93,7 +93,7 @@ Since saturation can take anywhere from seconds to months, the result is rescale
 
 - Rigid rectangular prism with principal axes aligned to the body axes. Wheel mass is distributed through the box inertia, and wheel spin-axis inertia is not added separately to the body inertia.
 - Perfect state knowledge: attitude and rate are read directly from the simulated state, with no sensor or estimation model.
-- Controller gains are fixed at $K_p = K_d = 1$.
+- Base controller gains are fixed at $K_p = K_d = 1$ and scaled from there according to the moments of inertia over each axis.
 - The disturbance torque is a single user-defined stand-in for the combined effect of solar radiation pressure, atmospheric drag, gravity gradient and similar sources. Deriving these from orbital and geometric parameters is out of scope.
 - Adaptive mode is an analytic momentum-accumulation model and does not propagate attitude.
 - No momentum dumping (magnetorquers or thrusters), so a saturated wheel stays saturated.
