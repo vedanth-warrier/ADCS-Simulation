@@ -126,9 +126,11 @@ def correction(precession_state, reaction_wheels, inertia, t_max, t_start, sampl
             error = -error
 
         w_body = final_state[4:]
+        Kp_inertia = Kp*inertia
+        Kd_inertia = Kd*inertia
 
         # PD control law: correction torque = Kp * orientation error - Kd * angular velocity
-        external_torque = Kp*error[:3] - Kd*w_body
+        external_torque = Kp_inertia*error[:3] - Kd_inertia*w_body
 
         # convert the torque this would need into a wheel spin-up rate (rad/s -> RPM,
         # hence the 30/pi), so it can be compared against the wheel's physical limit
