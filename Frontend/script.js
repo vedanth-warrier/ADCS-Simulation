@@ -678,6 +678,9 @@ function animateSatellite(stateTimeSeries) {
 }
 
 const correctAttitudeBtn = document.getElementById("correct-attitude-btn");
+const correctAttitudeLabel = correctAttitudeBtn?.querySelector(".btn-label");
+const CORRECT_ATTITUDE_IDLE_LABEL = "Correct Attitude";
+const CORRECT_ATTITUDE_LOADING_LABEL = "Correcting Attitude...";
 const resetBtn = document.getElementById("reset-btn");
 const simulationStatus = document.getElementById("simulation-status");
 const sceneStatusLabel = document.getElementById("scene-status");
@@ -702,6 +705,8 @@ function resetSimulationState() {
     simulationStatus.hidden = true;
     simulationStatus.classList.remove("status-error");
     correctAttitudeBtn.disabled = false;
+    correctAttitudeBtn.classList.remove("loading");
+    correctAttitudeLabel.textContent = CORRECT_ATTITUDE_IDLE_LABEL;
 }
 
 resetBtn?.addEventListener("click", resetSimulationState);
@@ -710,6 +715,11 @@ correctAttitudeBtn?.addEventListener("click", async () => {
     const params = readUserInputs();
 
     correctAttitudeBtn.disabled = true;
+    // Render/Pages can take a while to respond (cold starts especially), so
+    // this spinner+label swap is the only feedback the user gets that the
+    // click actually registered and something is happening.
+    correctAttitudeBtn.classList.add("loading");
+    correctAttitudeLabel.textContent = CORRECT_ATTITUDE_LOADING_LABEL;
     liveTumbleEnabled = false;
     simulationStatus.hidden = true;
     simulationStatus.classList.remove("status-error");
@@ -727,6 +737,8 @@ correctAttitudeBtn?.addEventListener("click", async () => {
         simulationStatus.hidden = false;
     } finally {
         correctAttitudeBtn.disabled = false;
+        correctAttitudeBtn.classList.remove("loading");
+        correctAttitudeLabel.textContent = CORRECT_ATTITUDE_IDLE_LABEL;
     }
 });
 

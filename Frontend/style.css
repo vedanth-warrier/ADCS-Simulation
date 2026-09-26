@@ -502,6 +502,10 @@ reads as standard scientific notation with no label needed. */
 #correct-attitude-btn {
     width: 100%;
     padding: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
     background-image: var(--gradient-accent);
     color: #06111c;
     border: none;
@@ -516,6 +520,34 @@ reads as standard scientific notation with no label needed. */
 #correct-attitude-btn:hover {
     filter: brightness(1.1);
     box-shadow: 0 0 22px rgba(139, 92, 246, 0.45);
+}
+
+#correct-attitude-btn:disabled {
+    cursor: not-allowed;
+    filter: brightness(0.9);
+}
+
+/* hidden until the button is put into its loading state, so the button
+looks exactly as it always did the rest of the time */
+.btn-spinner {
+    display: none;
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    border: 2px solid rgba(6, 17, 28, 0.3);
+    border-top-color: #06111c;
+    border-radius: 50%;
+    animation: btn-spinner-rotate 0.7s linear infinite;
+}
+
+#correct-attitude-btn.loading .btn-spinner {
+    display: block;
+}
+
+@keyframes btn-spinner-rotate {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .secondary-btn {
