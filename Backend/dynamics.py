@@ -130,8 +130,15 @@ def correction(precession_state, reaction_wheels, inertia, t_max, t_start, sampl
         Kp_inertia = Kp*np.array(inertia)
         Kd_inertia = Kd*np.array(inertia)
 
+        #Feedforward term:
+        T_ff_x = (inertia[2]-inertia[1])*w_body[1]*w_body[2] + (w_body[1]*wheel_momentum[2] - w_body[2]*wheel_momentum[1])
+        T_ff_y = (inertia[0]-inertia[2])*w_body[2]*w_body[0] + (w_body[2]*wheel_momentum[0] - w_body[0]*wheel_momentum[2])
+        T_ff_z = (inertia[1]-inertia[0])*w_body[0]*w_body[1] + (w_body[0]*wheel_momentum[1] - w_body[1]*wheel_momentum[0])
+        T_ff = np.array([T_ff_x, T_ff_y, T_ff_z])
+
+
         # PD control law: correction torque = Kp * orientation error - Kd * angular velocity
-        external_torque = Kp_inertia*error[:3] - Kd_inertia*w_body
+        external_torque = Kp_inertia*error[:3] - Kd_inertia*w_body + T_ff
 
         # convert the torque this would need into a wheel spin-up rate (rad/s -> RPM,
         # hence the 30/pi), so it can be compared against the wheel's physical limit

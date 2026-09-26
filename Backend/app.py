@@ -74,8 +74,8 @@ def simulate():
             correction_max_time,
             t_precession_end,
             sample_frequency,
-            5,
-            5
+            1,
+            1
         )
         text_correction = ['Applying Correction' for i in t_correction]
 
