@@ -5,7 +5,7 @@ A web-based spacecraft attitude simulator. A satellite tumbles freely under an a
 **Live App:** [vedanth-warrier.github.io/ADCS-Simulator/](https://vedanth-warrier.github.io/ADCS-Simulator/)
 **Backend API:** [attitude-determination-and-control.onrender.com](https://attitude-determination-and-control.onrender.com) (free Render tier, the first request after idling can take up to a minute while the service wakes)
 
-<img src="images/simulator.png" width="80%">
+<img src="Frontend/Images/Simulator.png" width="80%">
 
 ## Authorship
 
