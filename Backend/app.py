@@ -54,7 +54,8 @@ def simulate():
             state_initial,
             inertia,
             [0,0,0],
-            [0, t_precession_end]
+            [0, t_precession_end],
+            [0,0,0]
         )
         # sample the continuous solution onto a fixed grid the frontend can animate smoothly
         t_precession = np.linspace(0, t_precession_end, t_precession_end*frequency)
@@ -82,16 +83,20 @@ def simulate():
         if ran:
             state_post_correction = y_correction[:, -1]
             time_post_correction = t_correction[-1]
+            wheel_momentum_post_correction = 0.5 * reaction_wheel_params['mass'] * reaction_wheel_params["radius"]**2 * np.pi/30 * np.array(RPM_correction)[:, -1]
         else:
             state_post_correction = state_post_precession
             time_post_correction = t_precession_end
+            wheel_momentum_post_correction = [0,0,0]
 
         # phase 3: hold the corrected attitude, to confirm it's actually settled
         stability_solution = dynamics.integrate(
             state_post_correction,
             inertia,
             [0,0,0],
-            [time_post_correction, time_post_correction + stability_end]
+            [time_post_correction, time_post_correction + stability_end],
+            wheel_momentum_post_correction
+            
         )
         t_stability = np.linspace(time_post_correction, time_post_correction + stability_end, stability_end*frequency)
         y_stability = stability_solution.sol(t_stability)

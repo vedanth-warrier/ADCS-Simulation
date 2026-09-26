@@ -18,7 +18,7 @@ def moment_of_inertia_box(mass, dimensions):
 
 # state = [qx, qy, qz, qw, wx, wy, wz] (quaternion orientation + body angular velocity)
 # returns d(state)/dt: quaternion kinematics plus Euler's rigid body equations
-def equations_of_motion(t, state, inertia, external_torque):
+def equations_of_motion(t, state, inertia, external_torque, wheel_momentum):
     # quaternion derivative, standard dq/dt = 0.5 * omega(w) * q
     x_dot = 0.5*(state[3]*state[4] + state[1]*state[6] - state[2]*state[5])
     y_dot = 0.5*(state[3]*state[5] + state[2]*state[4] - state[0]*state[6])
@@ -27,9 +27,9 @@ def equations_of_motion(t, state, inertia, external_torque):
 
     # Euler's rigid body equations, angular acceleration per axis with gyroscopic
     # coupling between axes (this is what produces precession on a non-principal spin)
-    w_dot_x = (external_torque[0] - (inertia[2] - inertia[1])*state[5]*state[6])/inertia[0]
-    w_dot_y = (external_torque[1] - (inertia[0] - inertia[2])*state[6]*state[4])/inertia[1]
-    w_dot_z = (external_torque[2] - (inertia[1] - inertia[0])*state[4]*state[5])/inertia[2]
+    w_dot_x = (external_torque[0] - (inertia[2] - inertia[1])*state[5]*state[6] - (state[5]*wheel_momentum[2] - state[6]*wheel_momentum[1]))/inertia[0]
+    w_dot_y = (external_torque[1] - (inertia[0] - inertia[2])*state[6]*state[4] - (state[6]*wheel_momentum[0] - state[4]*wheel_momentum[2]))/inertia[1]
+    w_dot_z = (external_torque[2] - (inertia[1] - inertia[0])*state[4]*state[5] - (state[4]*wheel_momentum[1] - state[5]*wheel_momentum[0]))/inertia[2]
 
     return np.array([
         x_dot, y_dot, z_dot, w_dot,
@@ -41,12 +41,12 @@ def equations_of_motion(t, state, inertia, external_torque):
 # the solution at any time afterwards via .sol(t) instead of only at fixed steps
 # reltol/abstol are loose on purpose, tight tolerances make solve_ivp painfully slow
 # for these long tumble/correction runs without actually changing the visible result
-def integrate(state0, inertia, external_torque, t_span, reltol = 1e-3, abstol = 1e-6):
+def integrate(state0, inertia, external_torque, t_span, wheel_momentum, reltol = 1e-3, abstol = 1e-6):
     return solve_ivp(
         equations_of_motion,
         t_span,
         state0,
-        args=(inertia, external_torque),
+        args=(inertia, external_torque, wheel_momentum),
         dense_output=True,
         atol = abstol,
         rtol = reltol
@@ -160,8 +160,10 @@ def correction(precession_state, reaction_wheels, inertia, t_max, t_start, sampl
             RPM_z = RPM_z/abs(RPM_z) * RW_RPM
             external_torque[2] = 0
 
+        wheel_momentum = RW_inertia * np.pi/30 * np.array([RPM_x, RPM_y, RPM_z])
+
         # integrate this chunk with the (possibly clipped) correction torque applied
-        solution = integrate(final_state, inertia, external_torque, [t_start, t_end])
+        solution = integrate(final_state, inertia, external_torque, [t_start, t_end], wheel_momentum)
         y_values = solution.sol(t_split)
 
         # append this chunk's samples onto the running output, wheel RPM is held flat
