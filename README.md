@@ -9,7 +9,7 @@ A web-based spacecraft attitude simulator. A satellite tumbles freely under an a
 
 ## Authorship
 
-The backend (`dynamics.py`, `app.py`), covering all dynamics, control and API code, was written by Vedanth Warrier. The frontend (`index.html`, `script.js`, `style.css`) was generated entirely by Claude (Anthropic) and is not claimed as original work. `CLAUDE.md` is the specification file used to direct that generation.
+The backend (`dynamics.py`, `app.py`), covering all dynamics, control and API code, was written by Vedanth Warrier. The frontend (`index.html`, `script.js`, `style.css`) was generated entirely by Claude (Anthropic) and is not claimed as original work. `CLAUDE.md` was the initial specification file used to direct that generation (now outdated after many design changes).
 
 ## Overview
 
