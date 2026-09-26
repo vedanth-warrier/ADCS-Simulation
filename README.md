@@ -34,11 +34,11 @@ $$\mathbf{x} = \begin{bmatrix} q_1 & q_2 & q_3 & q_4 & \omega_x & \omega_y & \om
 
 $$\dot{\mathbf{q}}_v = \frac{1}{2}\left(q_4\ \boldsymbol{\omega} + \mathbf{q}_v \times \boldsymbol{\omega}\right)$$
 
-$$\dot{q}_4 = -\frac{1}{2}\,\mathbf{q}_v \cdot \boldsymbol{\omega}$$
+$$\dot{q}_4 = -\frac{1}{2}\mathbf{q}_v \cdot \boldsymbol{\omega}$$
 
 **Euler's rigid-body equations** with stored wheel momentum $\mathbf{h}_w$ and applied torque $\boldsymbol{\tau}$:
 
-$$\mathbf{I}\,\dot{\boldsymbol{\omega}} = \boldsymbol{\tau} - \boldsymbol{\omega} \times \left(\mathbf{I}\boldsymbol{\omega}\right) - \boldsymbol{\omega} \times \mathbf{h}_w$$
+$$\mathbf{I}\dot{\boldsymbol{\omega}} = \boldsymbol{\tau} - \boldsymbol{\omega} \times \left(\mathbf{I}\boldsymbol{\omega}\right) - \boldsymbol{\omega} \times \mathbf{h}_w$$
 
 **Moment of inertia** (solid box, principal axes aligned with the body axes), where $m$ includes the mass of all three wheels:
 
@@ -46,7 +46,7 @@ $$I_{xx} = \frac{m}{12}\left(y^2 + z^2\right), \quad I_{yy} = \frac{m}{12}\left(
 
 **Reaction wheels** are modelled as solid disks, with wheel speed $\Omega$ in rad/s:
 
-$$I_w = \frac{1}{2}\,m_w r_w^2, \qquad h_w = I_w\,\Omega$$
+$$I_w = \frac{1}{2} m_w r_w^2, \qquad h_w = I_w \Omega$$
 
 Integration uses `scipy.integrate.solve_ivp` with dense output, and the quaternion is renormalised after every integration step to remove numerical drift.
 
@@ -54,17 +54,17 @@ Integration uses `scipy.integrate.solve_ivp` with dense output, and the quaterni
 
 A quaternion-error PD controller with inertia-scaled gains and a feedforward term that cancels the gyroscopic coupling:
 
-$$\boldsymbol{\tau}_c = K_p\,\mathbf{I}\,\mathbf{e}_v - K_d\,\mathbf{I}\,\boldsymbol{\omega} + \boldsymbol{\omega} \times \left(\mathbf{I}\boldsymbol{\omega}\right) + \boldsymbol{\omega} \times \mathbf{h}_w$$
+$$\boldsymbol{\tau}_c = K_p\mathbf{I}\mathbf{e}_v - K_d\mathbf{I}\boldsymbol{\omega} + \boldsymbol{\omega} \times \left(\mathbf{I}\boldsymbol{\omega}\right) + \boldsymbol{\omega} \times \mathbf{h}_w$$
 
 The error quaternion $\mathbf{e}$ is taken against the identity attitude and sign-flipped so that $e_4 \geq 0$, which forces the shortest rotation path. With the coupling cancelled and the gains scaled by inertia, every axis follows the same decoupled closed-loop dynamics:
 
-$$\dot{\boldsymbol{\omega}} = K_p\,\mathbf{e}_v - K_d\,\boldsymbol{\omega}$$
+$$\dot{\boldsymbol{\omega}} = K_p\mathbf{e}_v - K_d\boldsymbol{\omega}$$
 
 For small angles $\mathbf{e}_v \approx -\boldsymbol{\theta}/2$, giving a second-order response with $\omega_n = \sqrt{K_p/2}$ and $\zeta = K_d / (2\omega_n)$. With $K_p = K_d = 1$ this is $\omega_n \approx 0.71$ rad/s and $\zeta \approx 0.71$.
 
 **Discrete implementation:** the control torque is recomputed every 0.05 s (20 Hz) and held constant across each step. The body receives $+\boldsymbol{\tau}_c$ and each wheel absorbs the reaction:
 
-$$\Omega_{k+1} = \Omega_k - \frac{\tau_c\,\Delta t}{I_w}$$
+$$\Omega_{k+1} = \Omega_k - \frac{\tau_c\Delta t}{I_w}$$
 
 **Actuator limits**, applied per axis every step:
 - **Torque limit:** if the commanded torque would need a spin-up rate above the wheel's maximum, it is clipped to that maximum.
@@ -87,7 +87,7 @@ No disturbance torque acts in this mode, since the correction timescale is far s
 
 The satellite starts at rest and a constant disturbance torque $\boldsymbol{\tau}_d$ of user-defined magnitude and direction acts continuously. Each wheel absorbs its share of the disturbance until it reaches maximum RPM, with the per-axis time to saturation given by:
 
-$$t_{sat,i} = \frac{I_w\,\Omega_{max}}{\left|\tau_{d,i}\right|}$$
+$$t_{sat,i} = \frac{I_w\Omega_{max}}{\left|\tau_{d,i}\right|}$$
 
 Since saturation can take anywhere from seconds to months, the result is rescaled onto a fixed 100 s playback window, driven by the slowest axis to saturate.
 
