@@ -32,7 +32,7 @@ $$\mathbf{x} = \begin{bmatrix} q_1 & q_2 & q_3 & q_4 & \omega_x & \omega_y & \om
 
 **Quaternion kinematics**, with $\mathbf{q}_v = [q_1, q_2, q_3]^T$ and $\boldsymbol{\omega}$ in the body frame:
 
-$$\dot{\mathbf{q}}_v = \frac{1}{2}\left(q_4\,\boldsymbol{\omega} + \mathbf{q}_v \times \boldsymbol{\omega}\right)$$
+$$\dot{\mathbf{q}}_v = \frac{1}{2}\left(q_4\ \boldsymbol{\omega} + \mathbf{q}_v \times \boldsymbol{\omega}\right)$$
 
 $$\dot{q}_4 = -\frac{1}{2}\,\mathbf{q}_v \cdot \boldsymbol{\omega}$$
 
