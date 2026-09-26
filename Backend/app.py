@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import dynamics
 import numpy as np
-import scipy.interpolate as interpolate
 import os
 
 app = Flask(__name__)
