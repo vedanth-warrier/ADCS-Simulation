@@ -104,6 +104,8 @@ def correction(precession_state, reaction_wheels, inertia, t_max, t_start, sampl
 
     saturated = [False, False, False]
     ran = False
+    # wheel momentum already stored going into a chunk (used below for the feedforward
+    # term), starts at zero since the wheels haven't spun up yet
     wheel_momentum = [0,0,0]
 
     # keep stepping while orientation/velocity are still meaningfully off zero, or time runs out
@@ -127,17 +129,25 @@ def correction(precession_state, reaction_wheels, inertia, t_max, t_start, sampl
             error = -error
 
         w_body = final_state[4:]
+
+        # gains scaled by each axis's own inertia, so a fixed Kp/Kd doesn't
+        # under-drive the heavy axes and over-drive the light one the way a flat
+        # gain would on a satellite this asymmetric
         Kp_inertia = Kp*np.array(inertia)
         Kd_inertia = Kd*np.array(inertia)
 
-        #Feedforward term:
+        # feedforward: cancels out the gyroscopic coupling terms from
+        # equations_of_motion (both the body's own w x Iw term and the wheels'
+        # w x h term) ahead of time, using the wheel momentum already stored
+        # going into this chunk. Same expressions as in equations_of_motion,
+        # just added back instead of subtracted, so they net to zero and the
+        # PD law below gets to act on a plain decoupled axis like it assumes
         T_ff_x = (inertia[2]-inertia[1])*w_body[1]*w_body[2] + (w_body[1]*wheel_momentum[2] - w_body[2]*wheel_momentum[1])
         T_ff_y = (inertia[0]-inertia[2])*w_body[2]*w_body[0] + (w_body[2]*wheel_momentum[0] - w_body[0]*wheel_momentum[2])
         T_ff_z = (inertia[1]-inertia[0])*w_body[0]*w_body[1] + (w_body[0]*wheel_momentum[1] - w_body[1]*wheel_momentum[0])
         T_ff = np.array([T_ff_x, T_ff_y, T_ff_z])
 
-
-        # PD control law: correction torque = Kp * orientation error - Kd * angular velocity
+        # PD control law (inertia-scaled gains) plus the feedforward cancellation term
         external_torque = Kp_inertia*error[:3] - Kd_inertia*w_body + T_ff
 
         # convert the torque this would need into a wheel spin-up rate (rad/s -> RPM,
