@@ -60,8 +60,6 @@ The error quaternion $\mathbf{e}$ is taken against the identity attitude and sig
 
 $$\dot{\boldsymbol{\omega}} = K_p\mathbf{e}_v - K_d\boldsymbol{\omega}$$
 
-For small angles $\mathbf{e}_v \approx -\boldsymbol{\theta}/2$, giving a second-order response with $\omega_n = \sqrt{K_p/2}$ and $\zeta = K_d / (2\omega_n)$. With $K_p = K_d = 1$ this is $\omega_n \approx 0.71$ rad/s and $\zeta \approx 0.71$.
-
 **Discrete implementation:** the control torque is recomputed every 0.05 s (20 Hz) and held constant across each step. The body receives $+\boldsymbol{\tau}_c$ and each wheel absorbs the reaction:
 
 $$\Omega_{k+1} = \Omega_k - \frac{\tau_c\Delta t}{I_w}$$
