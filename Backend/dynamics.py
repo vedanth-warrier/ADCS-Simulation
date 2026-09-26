@@ -104,6 +104,7 @@ def correction(precession_state, reaction_wheels, inertia, t_max, t_start, sampl
 
     saturated = [False, False, False]
     ran = False
+    wheel_momentum = [0,0,0]
 
     # keep stepping while orientation/velocity are still meaningfully off zero, or time runs out
     while (
@@ -126,8 +127,8 @@ def correction(precession_state, reaction_wheels, inertia, t_max, t_start, sampl
             error = -error
 
         w_body = final_state[4:]
-        Kp_inertia = Kp*inertia
-        Kd_inertia = Kd*inertia
+        Kp_inertia = Kp*np.array(inertia)
+        Kd_inertia = Kd*np.array(inertia)
 
         # PD control law: correction torque = Kp * orientation error - Kd * angular velocity
         external_torque = Kp_inertia*error[:3] - Kd_inertia*w_body
